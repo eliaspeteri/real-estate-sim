@@ -1,0 +1,142 @@
+Features
+- [x]Time
+- [x] Money
+- [ ] AI opponents (Blocked by moving data handling to backend)
+- [x] Generate right type of properties for the right location
+  - Downtown:
+    - Apartments
+    - Commercial
+    - Mixed use
+    - Condo
+    - Skyscraper Condo
+    - Land
+  - Urban:
+    - Apartments
+    - Commercial
+    - Industrial
+    - Mixed use
+    - Land
+    - Townhouse
+  - Suburban:
+    - Houses
+    - Apartments
+    - Land
+    - Mobile home
+    - Ranch house
+    - Row house
+    - Villa
+    - Bungalow
+    - Mansion
+    - Duplex
+    - Colonial house
+    - Tiny home
+    - Houseboat
+    - Chalet
+  - Country:
+    - Houses
+    - Land
+    - Vacation
+    - Farms
+    - Land
+    - Cottage
+    - Cabin
+- [x] Generate random properties
+- [x] Generate right sized properties for the right location
+    - Downtown:
+        - 1-3 rooms
+        - 50-100 m²
+    - Urban:
+        - 1-4 rooms
+        - 50-150 m²
+    - Suburban:
+        - 2-6 rooms
+        - 100-300 m²
+    - Country:
+        - 3-8 rooms
+        - 150-500 m²
+- [x] Generate random property values
+  - Downtown:
+    - 100000 - 1000000
+  - Urban:
+    - 50000 - 500000
+  - Suburban:
+    - 100000 - 1000000
+  - Country:
+    - 50000 - 500000
+- [-] Buy and sell properties
+  - [ ] Filters for listing view
+	- [x] Min and max price
+	- [x] Location
+	- [x] Property type
+	- [x] Condition
+	- [ ] Features
+	- [ ] Economic factors
+  - Outsource for a real estate agent for a price.
+  Properties have
+    - [x] Address
+    - [x] Value. Can be affected by events. Usually purchase price.
+    - [x] Type (House, Apartment, etc.)
+    - [ ] Intended purpose
+      - Housing
+      - Business
+    - [x] Description
+    - [x] Building date. Can be new development or old building.
+    - Maintenance done or which needs to be done.
+    - [x] Name
+    - [x] Purchase price. Can be negotiated.
+    - [x] Size
+    - [x] Rooms
+    - [x] Location (Downtown, Suburban, Country)
+    - [x] Owner. Currently Player or not.
+    - [x] Variable time on the market. This is affected by events, location etc. How "hot" the market is.
+    - [x] Maintenance costs by size.
+- [-] Rent out properties
+  - [x] Choose the right rentee
+    - [x] Rentee might occupy the property a short or long time.
+    - Bad rentee can cause damage to the property.
+    - Good rentee can pay more.
+  - Choose the right rental price to keep the property rented out.
+  - Write listing -> Keywords in the listing will help attract the right type of rentees.
+  - [x] Outsource for a property manager for a price.
+- [x] Renovate properties
+  - [x] Choose the right renovation company or do it yourself
+  - [x] You can't renovate while renting out the property.
+- [ ] Events & Opportunities
+	This is a big feature. Minor events can happen more often, and have minor effects. Major events happen more rarely and have major effects. An event effect should be a factor in several places such as:
+	- interest rate calculation (hyperinflation causes interest rates to go up, depression causes interest rates to go down)
+	- probability for getting loan from bank (poor economy makes banks more tight with lending, and good economy makes banks more open to lending)
+	- decreased or increased max loan amounts the bank is willing to lend
+	- quality and amount of tenant applications (poor economy or city planning makes quality of area go down, attracting more poor quality tenants who can't afford to live elsewhere)
+	- quality of an area or property type (business can begin to boom in an area, causing investments to be more lucrative in that area)
+
+	The system should be modular such that it's easy to write in new events, their probabilities, their durations and their effects. A major event should also be able to have minor events attached to it. For example, civil unrest will decrease economy factors, which leads to citizens causing property damage and theft.
+
+	There should also be a notice somewhere in the main view, for example a clickable banner, which brings up a modal with more information about the current event, and possible minor events related to it.
+
+	We can leverage the modal system for creating choices related to events. The choices will decide how much the events will impact the player.
+
+	There should also be a new feature in the banking system to buy interest rate protection for the loans the player has taken. This will cap the interest rates at a percentage chosen by player. Smaller cap will be more expensive per month.
+  - [ ] Minor and major events
+  - [ ] Impacting choices
+  - [ ] Positive and negative effects
+
+- [-] Bank loans
+  - [ ] Interest rate protection, costs extra
+  - [ ] Events impact loan availability
+  - [x] Banks will only finance 70 % loan to value ratio
+- [x] Interest rates
+- Housing market
+- [x] Taxes
+  - Tax planning
+  - [x] Tax on rental income
+  - [x] Tax on property value
+  - [x] Tax on buying and selling properties
+  - [ ] Modular tax system based on fixed rules or localization (Blocked by localization)
+- [-] Maintenance costs
+- [x] Fees
+- [x] Cash flow reports
+- Building properties
+  - Dealing with permits
+  - Raising funds
+- [ ] Localization
+- [ ] Move data handling to backend
