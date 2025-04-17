@@ -846,7 +846,8 @@ export const generateRandomProperty = (
     isNew,
     tenantHistory: [],
     tenantEvents: [],
-    leaseApplications: []
+    leaseApplications: [],
+    propertyTax: 0
   };
 };
 
