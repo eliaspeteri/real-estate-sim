@@ -8,6 +8,7 @@ interface ListingsProps {
   onBuyOrSell: (propertyId: number) => void;
   onRent: (propertyId: number, options?: { showModal?: boolean }) => void;
   onRenovate: (propertyId: number) => void;
+  onRenovateToMax?: (propertyId: number) => void;
   onEvictTenant?: (propertyId: number, tenantId?: string) => void;
   currentDate?: Date;
   playerMoney: number;
@@ -19,6 +20,7 @@ interface ListingsProps {
   onUpdateRentPrice?: (propertyId: number, rentPrice: number) => void;
   onAcceptOffer?: (propertyId: number, offerId: string) => void;
   onBulldoze?: (propertyId: number) => void;
+  getRenovateToMaxCost?: (property: Property) => number;
   onApplyPermit?: (propertyId: number) => void;
   onStartConstruction?: (propertyId: number) => void;
   onRaiseFunds?: (propertyId: number) => void;
@@ -77,6 +79,7 @@ export const Listings = ({
   onBuyOrSell,
   onRent,
   onRenovate,
+  onRenovateToMax,
   onEvictTenant,
   currentDate,
   playerMoney,
@@ -85,6 +88,7 @@ export const Listings = ({
   onUpdateRentPrice,
   onAcceptOffer,
   onBulldoze,
+  getRenovateToMaxCost,
   onApplyPermit,
   onStartConstruction,
   onRaiseFunds,
@@ -531,6 +535,7 @@ export const Listings = ({
                 onBuyOrSell={onBuyOrSell}
                 onRent={onRent}
                 onRenovate={onRenovate}
+                onRenovateToMax={onRenovateToMax}
                 onEvictTenant={onEvictTenant}
                 currentDate={currentDate}
                 playerMoney={playerMoney}
@@ -539,6 +544,7 @@ export const Listings = ({
                 onUpdateRentPrice={onUpdateRentPrice}
                 onAcceptOffer={onAcceptOffer}
                 onBulldoze={onBulldoze}
+                getRenovateToMaxCost={getRenovateToMaxCost}
                 onApplyPermit={onApplyPermit}
                 onStartConstruction={onStartConstruction}
                 onRaiseFunds={onRaiseFunds}

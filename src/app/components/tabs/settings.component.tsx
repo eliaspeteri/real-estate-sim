@@ -7,6 +7,7 @@ interface SettingsProps {
   setTickRate: (rate: number) => void;
   paused: boolean;
   setPaused: (paused: boolean) => void;
+  onResetSim: () => void;
   propertyManager: {
     hired: boolean;
     fee: number;
@@ -29,6 +30,7 @@ export const Settings = ({
   setTickRate,
   paused,
   setPaused,
+  onResetSim,
   propertyManager,
   togglePropertyManager,
   realEstateAgent,
@@ -69,11 +71,35 @@ export const Settings = ({
     { value: "NORDIC", label: "Nordic Model" }
   ];
 
+  const handleReset = () => {
+    const confirmed = window.confirm(
+      "Reset the simulation? This clears local storage and cannot be undone."
+    );
+    if (!confirmed) return;
+    onResetSim();
+  };
+
   return (
     <div className='bg-gray-800 rounded-lg p-6'>
       <h2 className='text-xl font-semibold mb-4'>Game Settings</h2>
 
       <div className='space-y-6'>
+        <div className='border border-red-500/40 bg-red-900/20 rounded p-4'>
+          <h3 className='text-lg font-semibold mb-2 text-red-300'>
+            Reset Simulation
+          </h3>
+          <p className='text-sm text-gray-300 mb-3'>
+            This will pause the sim, clear local storage, and restart at the
+            current date.
+          </p>
+          <button
+            className='px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded'
+            onClick={handleReset}
+          >
+            Reset Simulation
+          </button>
+        </div>
+
         <div>
           <label className='block text-sm font-medium text-gray-400 mb-2'>
             Game Speed
@@ -248,30 +274,6 @@ export const Settings = ({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Display Settings */}
-        <div className='border-t border-gray-700 pt-6'>
-          <h3 className='text-lg font-semibold mb-3'>Display Settings</h3>
-          <div className='space-y-3'>
-            <label className='flex items-center space-x-2'>
-              <input
-                type='checkbox'
-                className='form-checkbox h-5 w-5 text-blue-500'
-                defaultChecked
-              />
-              <span>Show property notifications</span>
-            </label>
-
-            <label className='flex items-center space-x-2'>
-              <input
-                type='checkbox'
-                className='form-checkbox h-5 w-5 text-blue-500'
-                defaultChecked
-              />
-              <span>Auto-sort by newest properties</span>
-            </label>
-          </div>
         </div>
 
         {/* Localization & Tax Region */}

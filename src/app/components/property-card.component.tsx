@@ -8,6 +8,7 @@ interface PropertyCardProps {
   onBuyOrSell: (propertyId: number) => void;
   onRent: (propertyId: number, options?: { showModal?: boolean }) => void;
   onRenovate: (propertyId: number) => void;
+  onRenovateToMax?: (propertyId: number) => void;
   onEvictTenant?: (propertyId: number, tenantId?: string) => void;
   currentDate?: Date;
   playerMoney: number;
@@ -21,6 +22,7 @@ interface PropertyCardProps {
   onUpdateRentPrice?: (propertyId: number, rentPrice: number) => void;
   onAcceptOffer?: (propertyId: number, offerId: string) => void;
   onBulldoze?: (propertyId: number) => void;
+  getRenovateToMaxCost?: (property: Property) => number;
   onApplyPermit?: (propertyId: number) => void;
   onStartConstruction?: (propertyId: number) => void;
   onRaiseFunds?: (propertyId: number) => void;
@@ -36,6 +38,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onBuyOrSell,
   onRent,
   onRenovate,
+  onRenovateToMax,
   onEvictTenant,
   currentDate,
   playerMoney,
@@ -46,6 +49,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onUpdateRentPrice,
   onAcceptOffer,
   onBulldoze,
+  getRenovateToMaxCost,
   onApplyPermit,
   onStartConstruction,
   onRaiseFunds,
@@ -96,8 +100,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           isOwnedByPlayer && isOutsourced
             ? "bg-purple-100 border-purple-300 text-gray-900" // Purple for outsourced
             : isOwnedByPlayer
-            ? "bg-blue-100 border-blue-300 text-gray-900" // Light blue for owned properties
-            : "bg-gray-800 border-gray-600 text-white" // Dark for regular listings
+              ? "bg-blue-100 border-blue-300 text-gray-900" // Light blue for owned properties
+              : "bg-gray-800 border-gray-600 text-white" // Dark for regular listings
         }`}
         onClick={() => setShowPropertyDetails(true)}
       >
@@ -125,9 +129,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           <span className='text-sm font-medium'>{property.location}</span>
 
           <span className='text-sm opacity-80'>Amenities Avg:</span>
-          <span className='text-sm font-medium'>
-            {amenitiesAverage}/5
-          </span>
+          <span className='text-sm font-medium'>{amenitiesAverage}/5</span>
 
           {isMultiUnit && (
             <>
@@ -230,6 +232,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           onBuyOrSell={onBuyOrSell}
           onRent={onRent}
           onRenovate={onRenovate}
+          onRenovateToMax={onRenovateToMax}
+          renovateToMaxCost={
+            getRenovateToMaxCost ? getRenovateToMaxCost(property) : undefined
+          }
           onEvictTenant={onEvictTenant}
           currentDate={currentDate}
           playerMoney={playerMoney}

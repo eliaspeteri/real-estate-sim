@@ -26,6 +26,8 @@ interface PropertyDetailsModalProps {
   onBuyOrSell?: (propertyId: number) => void;
   onRent?: (propertyId: number, options?: { showModal?: boolean }) => void;
   onRenovate?: (propertyId: number) => void;
+  onRenovateToMax?: (propertyId: number) => void;
+  renovateToMaxCost?: number;
   onEvictTenant?: (propertyId: number, tenantId?: string) => void;
   currentDate?: Date;
   playerMoney?: number;
@@ -67,6 +69,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   onBuyOrSell,
   onRent,
   onRenovate,
+  onRenovateToMax,
+  renovateToMaxCost,
   onEvictTenant,
   currentDate,
   playerMoney = 0,
@@ -719,6 +723,24 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               </button>
             )}
 
+            {isOwnedByPlayer && onRenovateToMax && (
+              <button
+                className='px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-white rounded disabled:bg-gray-400 disabled:text-gray-200'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRenovateToMax(property.id);
+                }}
+                disabled={
+                  property.renovationBonusPercentage >= 100 ||
+                  property.isRented ||
+                  !renovateToMaxCost ||
+                  (playerMoney !== undefined && playerMoney < renovateToMaxCost)
+                }
+              >
+                Renovate to 100% ({formatCurrency(renovateToMaxCost || 0)})
+              </button>
+            )}
+
             {isOwnedByPlayer && !isLand && onBulldoze && (
               <button
                 className='px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded disabled:bg-gray-700 disabled:text-gray-400'
@@ -854,15 +876,6 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                       }}
                     >
                       Set to Market
-                    </button>
-                    <button
-                      className='px-3 py-2 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white'
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRentPriceUpdate();
-                      }}
-                    >
-                      Apply
                     </button>
                   </div>
                   <p className='text-xs text-gray-400 mt-2'>
