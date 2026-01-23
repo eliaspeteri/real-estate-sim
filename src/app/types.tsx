@@ -32,7 +32,7 @@ export enum Location {
 
 export enum PropertyType {
   HOUSE = "House",
-  APARTMENT = "Apartment",
+  APARTMENT = "Apartment Building",
   COMMERCIAL = "Commercial",
   INDUSTRIAL = "Industrial",
   LAND = "Land",
@@ -93,6 +93,23 @@ export interface SpecialFeatures {
   outdoorSpaces: boolean;
   smartHome: boolean;
   securitySystem: boolean;
+}
+
+export type ListingKeyword =
+  | "luxury"
+  | "budget"
+  | "family"
+  | "pet_friendly"
+  | "quiet"
+  | "transit"
+  | "modern"
+  | "flexible_lease";
+
+export type DevelopmentPhase = "permitting" | "permitted" | "construction";
+
+export interface DevelopmentStatus {
+  phase: DevelopmentPhase;
+  daysRemaining: number;
 }
 
 export interface EconomicIndicators {
@@ -204,8 +221,13 @@ export interface Property {
   owner: string | null; // Currently Player or not
   timeOnMarket: number; // in days
   maintenanceCosts: number; // monthly, by size
-  intendedPurpose: "Housing" | "Business";
+  intendedPurpose: "Housing" | "Business" | "Mixed";
   rentPrice: number; // monthly
+  units?: number; // number of rentable units for multi-unit properties
+  occupiedUnits?: number; // number of units currently occupied
+  unitTenants?: Tenant[]; // tenants per unit
+  listingKeywords: ListingKeyword[];
+  listingCopy: string;
   isRented: boolean;
   rentee: string | null; // null if not rented
   neighborhoodQuality: NeighborhoodQuality;
@@ -226,6 +248,27 @@ export interface Property {
   leaseStart?: Date; // When the lease started
   leaseLength?: number; // Display/initial lease term in months
   propertyTax: number; // Monthly property tax
+  development?: DevelopmentStatus;
+  developmentFunding?: number; // Raised capital tied to development
+  isProtected?: boolean;
+  forSale?: boolean;
+  saleListedDate?: Date;
+  salePrice?: number;
+  saleOffers?: PropertyOffer[];
+  pendingEvictions?: PendingEviction[];
+}
+
+export interface PropertyOffer {
+  id: string;
+  buyerName: string;
+  amount: number;
+  date: Date;
+}
+
+export interface PendingEviction {
+  tenantId: string;
+  startDate: Date;
+  daysRemaining: number;
 }
 
 export enum EventSeverity {
