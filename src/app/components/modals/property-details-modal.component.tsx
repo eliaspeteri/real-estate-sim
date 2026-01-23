@@ -364,6 +364,15 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 <span className='text-gray-400'>Maintenance:</span>
                 <span>{property.maintenance}</span>
 
+                {property.renovation && (
+                  <>
+                    <span className='text-gray-400'>Renovation:</span>
+                    <span className='text-yellow-300'>
+                      {property.renovation.daysRemaining} days remaining
+                    </span>
+                  </>
+                )}
+
                 <span className='text-gray-400'>Protected:</span>
                 <span>{property.isProtected ? "Yes" : "No"}</span>
 
@@ -716,6 +725,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 disabled={
                   property.renovationBonusPercentage >= 100 ||
                   property.isRented ||
+                  property.renovation ||
                   (playerMoney !== undefined && playerMoney < renovationCost)
                 }
               >
@@ -733,6 +743,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 disabled={
                   property.renovationBonusPercentage >= 100 ||
                   property.isRented ||
+                  property.renovation ||
                   !renovateToMaxCost ||
                   (playerMoney !== undefined && playerMoney < renovateToMaxCost)
                 }

@@ -24,7 +24,8 @@ import { Taxes } from "./components/tabs/taxes.component";
 import {
   calculateTotalPropertyTax,
   calculateRentalIncomeTax,
-  calculateCapitalGainsTax
+  calculateCapitalGainsTax,
+  TaxRegion
 } from "./utils/calculateTaxes.util";
 import {
   generateLeaseApplications,
@@ -91,6 +92,14 @@ const initialProperties = generateRandomProperties(20); // Start with 20 propert
 const MARKET_TARGET_LISTINGS = 20;
 const MARKET_MAX_DAYS = 90;
 const NEW_LISTING_DAYS = 7;
+const RENOVATION_STEP_BONUS = 20;
+const RENOVATION_STEP_DAYS = 14;
+const RENOVATION_RENT_WITHHOLDING = 1; // Percentage of rent lost when property is under renovation
+const RENOVATION_MANAGER_SPEED_BONUS = 0.35; // Additional speed when manager is hired
+const MANAGER_MAINTENANCE_DISCOUNT = 0.15;
+const MANAGER_DAMAGE_COVERAGE = 0.6;
+const DAMAGE_RENOVATION_PENALTY = 5; // Percentage of renovation quality lost on damage
+const DAMAGE_VALUE_LOSS_RATIO = 0.1; // Percentage of value lost from damage events
 const STATE_STORAGE_KEY = "real-estate-sim.state";
 const NOTIFICATION_LIMIT = 50;
 
@@ -153,11 +162,33 @@ const getGlobalValueImpact = (activeEvents: GameEvent[]): number => {
     if (!event.isActive) return sum;
     const eventImpact = event.impacts.reduce((impactSum, impact) => {
       if (impact.type !== EventImpactType.PROPERTY_VALUE) return impactSum;
-      if (impact.affectedAreas || impact.affectedPropertyTypes) return impactSum;
+      if (impact.affectedAreas || impact.affectedPropertyTypes)
+        return impactSum;
       return impactSum + impact.value;
     }, 0);
     return sum + eventImpact;
   }, 0);
+};
+
+const calculatePortfolioNetIncome = (
+  properties: Property[],
+  taxRegion: TaxRegion,
+  managerFee: number
+): number => {
+  const owned = properties.filter((property) => property.owner === "Player");
+  const rentalIncome = owned.reduce((sum, property) => {
+    const occupiedUnits =
+      property.occupiedUnits ??
+      property.unitTenants?.length ??
+      (property.currentTenant ? 1 : 0);
+    return sum + (property.isRented ? property.rentPrice * occupiedUnits : 0);
+  }, 0);
+  const maintenance = owned.reduce(
+    (sum, property) => sum + property.maintenanceCosts,
+    0
+  );
+  const propertyTax = calculateTotalPropertyTax(owned, taxRegion);
+  return rentalIncome - maintenance - propertyTax - managerFee;
 };
 
 const applyUnitState = (property: Property, unitTenants: Tenant[]) => {
@@ -213,6 +244,11 @@ const reviveProperty = (property: Property): Property => {
         tenant: reviveTenant(application.tenant) || application.tenant
       })
     ),
+    renovation: property.renovation
+      ? {
+          ...property.renovation
+        }
+      : undefined,
     saleOffers: (property.saleOffers || []).map((offer) => ({
       ...offer,
       date: offer.date ? new Date(offer.date) : new Date()
@@ -735,6 +771,15 @@ const RealEstateSim: React.FC = () => {
     [events]
   );
 
+  const calculateListingAdCost = useCallback(
+    (property: Property, vacancies: number) => {
+      const base = 150;
+      const perUnit = Math.round(property.rentPrice * 0.08);
+      return Math.max(base, perUnit * Math.max(1, vacancies));
+    },
+    []
+  );
+
   const toggleOutsourceProperty = (propertyId: number) => {
     setOutsourcedProperties((prev) => {
       const newSet = new Set(prev);
@@ -830,7 +875,18 @@ const RealEstateSim: React.FC = () => {
           currentDate.getDate() === 1 && lastEventCheckRef.current !== monthKey;
 
         if (shouldCheckEvents) {
-          newEvents = checkForNewEvents(updatedEvents, currentDate);
+          const ownedCount = properties.filter(
+            (property) => property.owner === "Player"
+          ).length;
+          const portfolioEventMultiplier = Math.min(
+            2.5,
+            1 + Math.max(0, ownedCount - 3) * 0.2
+          );
+          newEvents = checkForNewEvents(
+            updatedEvents,
+            currentDate,
+            portfolioEventMultiplier
+          );
           relatedEvents = checkForRelatedEvents(
             [...updatedEvents, ...newEvents],
             currentDate
@@ -867,7 +923,7 @@ const RealEstateSim: React.FC = () => {
     return () => {
       clearInterval(eventInterval);
     };
-  }, [paused, currentDate, tickRate]);
+  }, [paused, currentDate, tickRate, properties]);
 
   const selectBestApplication = useCallback(
     (applications: LeaseApplication[], rentPrice: number) => {
@@ -1216,6 +1272,38 @@ const RealEstateSim: React.FC = () => {
     [completeDevelopment]
   );
 
+  const applyRenovationProgress = useCallback(
+    (currentProperties: Property[]) => {
+      const completedAddresses: string[] = [];
+
+      const updated = currentProperties.map((property) => {
+        if (!property.renovation) return property;
+        const daysRemaining = property.renovation.daysRemaining - 1;
+        if (daysRemaining > 0) {
+          return {
+            ...property,
+            renovation: {
+              ...property.renovation,
+              daysRemaining
+            }
+          };
+        }
+
+        completedAddresses.push(property.address);
+        return {
+          ...property,
+          renovation: undefined,
+          value: property.renovation.targetValue,
+          renovationBonusPercentage: property.renovation.targetBonus,
+          maintenance: "Recently renovated"
+        };
+      });
+
+      return { updated, completedAddresses };
+    },
+    []
+  );
+
   const advanceEvictions = useCallback(
     (currentProperties: Property[], date: Date) => {
       const completedAddresses: string[] = [];
@@ -1308,32 +1396,60 @@ const RealEstateSim: React.FC = () => {
         randomProperty.value * (0.001 + Math.random() * 0.005)
       );
 
+      const ownerDamageCost = propertyManager.hired
+        ? Math.max(0, Math.round(damageCost * (1 - MANAGER_DAMAGE_COVERAGE)))
+        : damageCost;
+      const managerDamageSavings = damageCost - ownerDamageCost;
+
       // Create tenant event
       const tenantEvent: TenantEvent = {
         type: "DAMAGE",
         date: new Date(currentDate),
         description: `Repairs needed: ${formatCurrency(damageCost)}`,
-        financialImpact: 0
+        financialImpact: -ownerDamageCost,
+        propertyImpact: -DAMAGE_RENOVATION_PENALTY
       };
 
-      // Update property and deduct money if not outsourced
+      const renovationDrop = Math.min(
+        DAMAGE_RENOVATION_PENALTY,
+        randomProperty.renovationBonusPercentage
+      );
+      const updatedValue = Math.max(
+        0,
+        Math.round(randomProperty.value * (1 - DAMAGE_VALUE_LOSS_RATIO))
+      );
+
+      // Update property, value, and tenant events
       setProperties((prev) =>
         prev.map((p) =>
           p.id === randomProperty.id
-            ? { ...p, tenantEvents: [...p.tenantEvents, tenantEvent] }
+            ? {
+                ...p,
+                tenantEvents: [...p.tenantEvents, tenantEvent],
+                maintenance: "Needs maintenance after damage",
+                renovationBonusPercentage: Math.max(
+                  0,
+                  p.renovationBonusPercentage - renovationDrop
+                ),
+                value: updatedValue
+              }
             : p
         )
       );
 
-      if (
-        !outsourcedProperties.has(randomProperty.id) &&
-        !propertyManager.hired
-      ) {
-        setPlayerMoney((prev) => prev - damageCost);
+      if (!outsourcedProperties.has(randomProperty.id) && ownerDamageCost > 0) {
+        setPlayerMoney((prev) => prev - ownerDamageCost);
         setToastMessage(
           `Repairs needed at ${randomProperty.address}. Cost: ${formatCurrency(
-            damageCost
+            ownerDamageCost
           )}`
+        );
+        setTimeout(() => setToastMessage(null), 5000);
+      } else if (managerDamageSavings > 0) {
+        setToastMessage(
+          `Property manager covered ${formatCurrency(
+            managerDamageSavings
+          )} in repairs at ${randomProperty.address}.`
         );
         setTimeout(() => setToastMessage(null), 5000);
       }
@@ -1356,14 +1472,25 @@ const RealEstateSim: React.FC = () => {
       setCurrentDate(newDate);
 
       const developmentUpdate = advanceDevelopmentProjects(properties);
+      const renovationUpdate = applyRenovationProgress(
+        developmentUpdate.updated
+      );
       const evictionUpdate = advanceEvictions(
-        developmentUpdate.updated,
+        renovationUpdate.updated,
         newDate
       );
       let updatedProperties = evictionUpdate.updated;
 
       if (developmentUpdate.completedAddresses.length > 0) {
         const message = `Construction completed: ${developmentUpdate.completedAddresses.join(
+          ", "
+        )}`;
+        setToastMessage(message);
+        setTimeout(() => setToastMessage(null), 5000);
+      }
+
+      if (renovationUpdate.completedAddresses.length > 0) {
+        const message = `Renovations completed: ${renovationUpdate.completedAddresses.join(
           ", "
         )}`;
         setToastMessage(message);
@@ -1384,8 +1511,24 @@ const RealEstateSim: React.FC = () => {
         let totalPropertyTax = 0;
         let totalMaintenanceCosts = 0;
         let managerTenantFees = 0;
+        let managerListingFees = 0;
         let managerTenantsFound = 0;
         let leaseDepartures = 0;
+        const ownedCount = updatedProperties.filter(
+          (property) => property.owner === "Player"
+        ).length;
+        const portfolioMaintenanceMultiplier = Math.min(
+          1.5,
+          Math.max(1, 1 + Math.max(0, ownedCount - 3) * 0.03)
+        );
+        const portfolioTaxMultiplier = Math.min(
+          1.4,
+          Math.max(1, 1 + Math.max(0, ownedCount - 3) * 0.04)
+        );
+        const portfolioPenalty = Math.min(
+          0.25,
+          Math.max(0, (ownedCount - 3) * 0.03)
+        );
 
         updatedProperties = updatedProperties.map((property) => {
           if (property.owner !== "Player") return property;
@@ -1439,7 +1582,10 @@ const RealEstateSim: React.FC = () => {
             (calculateTotalPropertyTax([property], taxRegion) / 12) *
               (1 + propertyTaxImpact)
           );
-          totalPropertyTax += monthlyPropertyTax;
+          const scaledPropertyTax = Math.round(
+            monthlyPropertyTax * portfolioTaxMultiplier
+          );
+          totalPropertyTax += scaledPropertyTax;
 
           const maintenanceCostImpact = calculateEventImpact(
             events.filter((e) => e.isActive),
@@ -1447,9 +1593,17 @@ const RealEstateSim: React.FC = () => {
             property.location,
             property.type
           );
+          const managerMaintenanceMultiplier = propertyManager.hired
+            ? Math.max(0.5, 1 - MANAGER_MAINTENANCE_DISCOUNT)
+            : 1;
           const adjustedMaintenanceCost = Math.max(
             0,
-            Math.round(property.maintenanceCosts * (1 + maintenanceCostImpact))
+            Math.round(
+              property.maintenanceCosts *
+                (1 + maintenanceCostImpact) *
+                portfolioMaintenanceMultiplier *
+                managerMaintenanceMultiplier
+            )
           );
           totalMaintenanceCosts += adjustedMaintenanceCost;
 
@@ -1469,7 +1623,7 @@ const RealEstateSim: React.FC = () => {
             if (unitTenants.length === 0) {
               return {
                 ...updatedPropertyBase,
-                propertyTax: monthlyPropertyTax,
+                propertyTax: scaledPropertyTax,
                 occupiedUnits: 0,
                 unitTenants: [],
                 isRented: false,
@@ -1490,6 +1644,32 @@ const RealEstateSim: React.FC = () => {
             );
 
             const tenantEvents = [...updatedTenantEvents];
+
+            if (property.renovation) {
+              const withheldRentAmount = Math.round(
+                property.rentPrice * RENOVATION_RENT_WITHHOLDING
+              );
+              tenantEvents.push({
+                type: "RENOVATION",
+                date: new Date(newDate),
+                description: `Renovation is underway, ${formatCurrency(
+                  withheldRentAmount
+                )} paused from rent.`,
+                financialImpact: 0
+              });
+
+              return {
+                ...updatedPropertyBase,
+                tenantEvents,
+                propertyTax: scaledPropertyTax,
+                occupiedUnits: unitTenants.length,
+                unitTenants,
+                isRented: unitTenants.length > 0,
+                currentTenant: unitTenants[0],
+                rentee: unitTenants[0]?.name ?? null
+              };
+            }
+
             let payingUnits = 0;
 
             unitTenants.forEach((tenant) => {
@@ -1530,7 +1710,7 @@ const RealEstateSim: React.FC = () => {
             return {
               ...updatedPropertyBase,
               tenantEvents,
-              propertyTax: monthlyPropertyTax,
+              propertyTax: scaledPropertyTax,
               occupiedUnits: unitTenants.length,
               unitTenants,
               isRented: unitTenants.length > 0,
@@ -1573,7 +1753,9 @@ const RealEstateSim: React.FC = () => {
               tenantQualityImpact +
               areaImpact +
               listingImpact.count +
-              rentPriceImpact.count;
+              rentPriceImpact.count -
+              portfolioPenalty +
+              propertyManager.efficiency * 0.05;
             const rawApplicationCount = Math.max(
               0,
               Math.round(baseApplicationCount * applicantMultiplier)
@@ -1593,6 +1775,10 @@ const RealEstateSim: React.FC = () => {
             const adjustedApplicationCount =
               Math.random() < applicationProbability ? rawApplicationCount : 0;
 
+            if (adjustedApplicationCount > 0) {
+              managerListingFees += calculateListingAdCost(property, vacancies);
+            }
+
             const applications = generateLeaseApplications(
               property.rentPrice,
               adjustedApplicationCount,
@@ -1610,7 +1796,7 @@ const RealEstateSim: React.FC = () => {
             if (!bestApplication) {
               return {
                 ...updatedPropertyBase,
-                propertyTax: monthlyPropertyTax
+                propertyTax: scaledPropertyTax
               };
             }
 
@@ -1636,11 +1822,11 @@ const RealEstateSim: React.FC = () => {
               leaseStart: new Date(newDate),
               leaseLength: bestApplication.desiredLeaseLength,
               leaseApplications: [],
-              propertyTax: monthlyPropertyTax
+              propertyTax: scaledPropertyTax
             };
           }
 
-          return { ...updatedPropertyBase, propertyTax: monthlyPropertyTax };
+          return { ...updatedPropertyBase, propertyTax: scaledPropertyTax };
         });
 
         // Calculate income tax on rental income
@@ -1657,6 +1843,7 @@ const RealEstateSim: React.FC = () => {
           rentalIncomeTax -
           totalMaintenanceCosts -
           managerTenantFees -
+          managerListingFees -
           (propertyManager.hired ? propertyManager.fee : 0);
 
         if (totalDebt > 0 && monthlyRepayment > 0) {
@@ -1811,12 +1998,14 @@ const RealEstateSim: React.FC = () => {
     taxRegion,
     monthlyTaxesPaid.propertyTax,
     advanceDevelopmentProjects,
+    applyRenovationProgress,
     advanceEvictions,
     applyMarketAdjustments,
     generateSaleOffers,
     processRandomTenantEvents,
     selectBestApplication,
     getListingKeywordsForProperty,
+    calculateListingAdCost,
     calculateRentPriceImpact,
     simulateAIActions,
     totalDebt,
@@ -1824,7 +2013,8 @@ const RealEstateSim: React.FC = () => {
     calculateAdminFee,
     playerMoney,
     consecutivePayments,
-    missedPayments
+    missedPayments,
+    formatCurrency
   ]);
 
   useEffect(() => {
@@ -1934,6 +2124,8 @@ const RealEstateSim: React.FC = () => {
       0,
       effectiveMaxLoanAmount - totalDebt
     );
+    const effectiveMaxDebtRatio =
+      maxLoanToValueRatio * (isNewBorrower ? 0.75 : 1);
 
     if (amount > remainingLoanCapacity) {
       setToastMessage(
@@ -1949,11 +2141,33 @@ const RealEstateSim: React.FC = () => {
     const newDebtRatio =
       totalAssetValue > 0 ? newTotalDebt / totalAssetValue : 1;
 
-    if (newDebtRatio > maxLoanToValueRatio) {
+    if (newDebtRatio > effectiveMaxDebtRatio) {
       setToastMessage(
         `This loan would exceed your maximum allowed debt ratio of ${(
-          maxLoanToValueRatio * 100
+          effectiveMaxDebtRatio * 100
         ).toFixed(1)}%.`
+      );
+      setTimeout(() => setToastMessage(null), 5000);
+      return;
+    }
+
+    const netMonthlyIncome = calculatePortfolioNetIncome(
+      properties,
+      taxRegion,
+      propertyManager.hired ? propertyManager.fee : 0
+    );
+    const projectedMonthlyRepayment =
+      (totalDebt + amount) * (baseInterestRate / 12);
+    const projectedAdminFee = calculateAdminFee(projectedMonthlyRepayment);
+    const projectedDebtService = projectedMonthlyRepayment + projectedAdminFee;
+    const dscr =
+      projectedDebtService > 0
+        ? netMonthlyIncome / projectedDebtService
+        : Number.POSITIVE_INFINITY;
+
+    if (dscr < 1.15) {
+      setToastMessage(
+        `Loan denied: cash flow coverage is too low (DSCR ${dscr.toFixed(2)}).`
       );
       setTimeout(() => setToastMessage(null), 5000);
       return;
@@ -2013,6 +2227,14 @@ const RealEstateSim: React.FC = () => {
         return;
       }
 
+      if (property.renovation) {
+        setToastMessage(
+          "This property is under renovation. Wait until work is complete."
+        );
+        setTimeout(() => setToastMessage(null), 5000);
+        return;
+      }
+
       if (property.isRented && vacancies === 0) {
         const updatedProperties = [...properties];
         updatedProperties[propertyIndex] = {
@@ -2042,6 +2264,13 @@ const RealEstateSim: React.FC = () => {
       const listingKeywords = getListingKeywordsForProperty(property);
       const listingImpact = calculateListingImpact(listingKeywords);
       const rentPriceImpact = calculateRentPriceImpact(property);
+      const ownedCount = properties.filter(
+        (item) => item.owner === "Player"
+      ).length;
+      const portfolioPenalty = Math.min(
+        0.25,
+        Math.max(0, (ownedCount - 3) * 0.03)
+      );
 
       const baseApplicationCount =
         (4 + Math.floor(Math.random() * 5)) * Math.max(1, vacancies || 1);
@@ -2050,7 +2279,8 @@ const RealEstateSim: React.FC = () => {
         tenantQualityImpact +
         areaImpact +
         listingImpact.count +
-        rentPriceImpact.count;
+        rentPriceImpact.count -
+        portfolioPenalty;
       const rawApplicationCount = Math.max(
         0,
         Math.round(baseApplicationCount * applicantMultiplier)
@@ -2066,6 +2296,18 @@ const RealEstateSim: React.FC = () => {
       );
       const adjustedApplicationCount =
         Math.random() < applicationProbability ? rawApplicationCount : 0;
+
+      if (adjustedApplicationCount > 0) {
+        const listingFee = calculateListingAdCost(property, vacancies || 1);
+        if (playerMoney < listingFee) {
+          setToastMessage(
+            `You need ${formatCurrency(listingFee)} to list this rental.`
+          );
+          setTimeout(() => setToastMessage(null), 5000);
+          return;
+        }
+        setPlayerMoney((prev) => prev - listingFee);
+      }
 
       const applications = generateLeaseApplications(
         property.rentPrice,
@@ -2128,6 +2370,15 @@ const RealEstateSim: React.FC = () => {
         property.value *
           (realEstateAgent.hired ? 1 + realEstateAgent.negotiationRate : 1)
       );
+      const listingFee = Math.max(500, Math.round(salePrice * 0.01));
+
+      if (playerMoney < listingFee) {
+        setToastMessage(
+          `You need ${formatCurrency(listingFee)} to list this property.`
+        );
+        setTimeout(() => setToastMessage(null), 5000);
+        return;
+      }
 
       const updatedProperties = [...properties];
       updatedProperties[propertyIndex] = {
@@ -2139,6 +2390,7 @@ const RealEstateSim: React.FC = () => {
       };
 
       setProperties(updatedProperties);
+      setPlayerMoney((prev) => prev - listingFee);
       setToastMessage(
         `Listed ${property.address} for ${formatCurrency(salePrice)}.`
       );
@@ -2359,11 +2611,45 @@ const RealEstateSim: React.FC = () => {
     [properties, playerMoney, formatCurrency]
   );
 
+  const calculateRenovationDuration = (
+    property: Property,
+    steps: number,
+    managerSpeedMultiplier: number
+  ) => {
+    const remainingPercent = Math.max(
+      1,
+      100 - property.renovationBonusPercentage
+    );
+    const sizeFactor = Math.max(0.5, remainingPercent / 100);
+    const baseDays = Math.max(
+      1,
+      Math.round(steps * RENOVATION_STEP_DAYS * (0.4 + sizeFactor))
+    );
+    return Math.max(1, Math.round(baseDays * managerSpeedMultiplier));
+  };
+
+  const finalizeInstantRenovation = (
+    property: Property,
+    targetBonus: number,
+    targetValue: number
+  ) => ({
+    ...property,
+    renovation: undefined,
+    value: targetValue,
+    renovationBonusPercentage: targetBonus,
+    maintenance: "Recently renovated"
+  });
+
   function handleRenovate(propertyId: number): void {
     const propertyIndex = properties.findIndex((p) => p.id === propertyId);
     if (propertyIndex === -1) return;
 
     const property = properties[propertyIndex];
+    if (property.renovation) {
+      setToastMessage("Renovation already in progress for this property.");
+      setTimeout(() => setToastMessage(null), 5000);
+      return;
+    }
     const renovationCost = calculateRenovationCost(property);
 
     // Check if player has enough money
@@ -2388,23 +2674,44 @@ const RealEstateSim: React.FC = () => {
 
     setPlayerMoney((prev) => prev - adjustedRenovationCost);
 
+    const targetValue = Math.round(property.value * 1.1);
+    const targetBonus = Math.min(
+      100,
+      property.renovationBonusPercentage + RENOVATION_STEP_BONUS
+    );
+    const managerSpeedMultiplier = propertyManager.hired
+      ? Math.max(
+          0.5,
+          1 - propertyManager.efficiency * RENOVATION_MANAGER_SPEED_BONUS
+        )
+      : 1;
+    const duration = calculateRenovationDuration(
+      property,
+      1,
+      managerSpeedMultiplier
+    );
     const updatedProperties = [...properties];
     updatedProperties[propertyIndex] = {
       ...property,
-      value: Math.round(property.value * 1.1), // 10% increase in value
-      renovationBonusPercentage: Math.min(
-        100,
-        property.renovationBonusPercentage + 20
-      ), // Add 20% to renovation bonus (max 100%)
-      maintenance: "Recently renovated"
+      maintenance: property.isRented
+        ? "Renovations in progress (partial rent)"
+        : "Renovations scheduled",
+      renovation: {
+        daysRemaining: duration,
+        targetBonus,
+        targetValue
+      }
     };
 
     setProperties(updatedProperties);
 
+    const occupancyWarning = property.isRented
+      ? " Rent income will be reduced while work continues."
+      : "";
     setToastMessage(
-      `Renovated ${property.address} for ${formatCurrency(
+      `Renovation started at ${property.address} for ${formatCurrency(
         adjustedRenovationCost
-      )}`
+      )}.${occupancyWarning}`
     );
     setTimeout(() => setToastMessage(null), 5000);
   }
@@ -2416,8 +2723,8 @@ const RealEstateSim: React.FC = () => {
 
       const property = properties[propertyIndex];
       if (property.renovationBonusPercentage >= 100) return;
-      if (property.isRented) {
-        setToastMessage("You must end leases before renovating to max.");
+      if (property.renovation) {
+        setToastMessage("Renovation already in progress for this property.");
         setTimeout(() => setToastMessage(null), 5000);
         return;
       }
@@ -2433,42 +2740,33 @@ const RealEstateSim: React.FC = () => {
         return;
       }
 
-      const renovationCostImpact = calculateEventImpact(
-        events.filter((e) => e.isActive),
-        EventImpactType.RENOVATION_COST
+      const steps = Math.ceil(
+        (100 - property.renovationBonusPercentage) / RENOVATION_STEP_BONUS
       );
-
       let tempValue = property.value;
       let tempBonus = property.renovationBonusPercentage;
-      let totalPaid = 0;
-
-      while (tempBonus < 100) {
-        const stepCostBase = calculateRenovationCost({
-          ...property,
-          value: tempValue
-        });
-        const stepCost = Math.round(stepCostBase * (1 + renovationCostImpact));
-        totalPaid += stepCost;
+      for (let i = 0; i < steps; i += 1) {
         tempValue = Math.round(tempValue * 1.1);
-        tempBonus = Math.min(100, tempBonus + 20);
+        tempBonus = Math.min(100, tempBonus + RENOVATION_STEP_BONUS);
       }
 
       const updatedProperties = [...properties];
-      updatedProperties[propertyIndex] = {
-        ...property,
-        value: tempValue,
-        renovationBonusPercentage: tempBonus,
-        maintenance: "Recently renovated"
-      };
+      updatedProperties[propertyIndex] = finalizeInstantRenovation(
+        property,
+        tempBonus,
+        tempValue
+      );
 
       setProperties(updatedProperties);
-      setPlayerMoney((prev) => prev - totalPaid);
+      setPlayerMoney((prev) => prev - totalCost);
       setToastMessage(
-        `Renovated ${property.address} to 100% for ${formatCurrency(totalPaid)}`
+        `Renovated ${property.address} to 100% condition instantly for ${formatCurrency(
+          totalCost
+        )}.`
       );
       setTimeout(() => setToastMessage(null), 5000);
     },
-    [properties, playerMoney, events, formatCurrency, calculateRenovateToMaxCost]
+    [properties, playerMoney, formatCurrency, calculateRenovateToMaxCost]
   );
 
   function handleEvictTenant(propertyId: number, tenantId?: string): void {
@@ -3164,53 +3462,53 @@ const RealEstateSim: React.FC = () => {
 
       <div className='mt-4'>
         {activeTab === "listings" && (
-            <Listings
-              properties={properties}
-              onBuyOrSell={handlePropertyAction}
-              onRent={handleRent}
-              onRenovate={handleRenovate}
-              onRenovateToMax={handleRenovateToMax}
-              onEvictTenant={handleEvictTenant}
-              currentDate={currentDate}
-              playerMoney={playerMoney}
-              onUpdateListing={handleUpdateListingKeywords}
-              onUpdateListingCopy={handleUpdateListingCopy}
-              onUpdateRentPrice={handleUpdateRentPrice}
-              onAcceptOffer={handleAcceptOffer}
-              onBulldoze={handleBulldozeProperty}
-              getRenovateToMaxCost={calculateRenovateToMaxCost}
-              onApplyPermit={handleApplyPermit}
-              onStartConstruction={handleStartConstruction}
-              onRaiseFunds={handleRaiseFunds}
-              handleAcceptApplication={handleAcceptApplication}
-              setPaused={setPaused}
-            />
+          <Listings
+            properties={properties}
+            onBuyOrSell={handlePropertyAction}
+            onRent={handleRent}
+            onRenovate={handleRenovate}
+            onRenovateToMax={handleRenovateToMax}
+            onEvictTenant={handleEvictTenant}
+            currentDate={currentDate}
+            playerMoney={playerMoney}
+            onUpdateListing={handleUpdateListingKeywords}
+            onUpdateListingCopy={handleUpdateListingCopy}
+            onUpdateRentPrice={handleUpdateRentPrice}
+            onAcceptOffer={handleAcceptOffer}
+            onBulldoze={handleBulldozeProperty}
+            getRenovateToMaxCost={calculateRenovateToMaxCost}
+            onApplyPermit={handleApplyPermit}
+            onStartConstruction={handleStartConstruction}
+            onRaiseFunds={handleRaiseFunds}
+            handleAcceptApplication={handleAcceptApplication}
+            setPaused={setPaused}
+          />
         )}
 
         {activeTab === "myProperties" && (
-            <MyProperties
-              properties={properties}
-              onBuyOrSell={handlePropertyAction}
-              onRent={handleRent}
-              onRenovate={handleRenovate}
-              onRenovateToMax={handleRenovateToMax}
-              onEvictTenant={handleEvictTenant}
-              currentDate={currentDate}
-              playerMoney={playerMoney}
-              outsourcedProperties={outsourcedProperties}
-              onToggleOutsource={toggleOutsourceProperty}
-              onUpdateListing={handleUpdateListingKeywords}
-              onUpdateListingCopy={handleUpdateListingCopy}
-              onUpdateRentPrice={handleUpdateRentPrice}
-              onAcceptOffer={handleAcceptOffer}
-              onBulldoze={handleBulldozeProperty}
-              getRenovateToMaxCost={calculateRenovateToMaxCost}
-              onApplyPermit={handleApplyPermit}
-              onStartConstruction={handleStartConstruction}
-              onRaiseFunds={handleRaiseFunds}
-              handleAcceptApplication={handleAcceptApplication}
-              setPaused={setPaused}
-            />
+          <MyProperties
+            properties={properties}
+            onBuyOrSell={handlePropertyAction}
+            onRent={handleRent}
+            onRenovate={handleRenovate}
+            onRenovateToMax={handleRenovateToMax}
+            onEvictTenant={handleEvictTenant}
+            currentDate={currentDate}
+            playerMoney={playerMoney}
+            outsourcedProperties={outsourcedProperties}
+            onToggleOutsource={toggleOutsourceProperty}
+            onUpdateListing={handleUpdateListingKeywords}
+            onUpdateListingCopy={handleUpdateListingCopy}
+            onUpdateRentPrice={handleUpdateRentPrice}
+            onAcceptOffer={handleAcceptOffer}
+            onBulldoze={handleBulldozeProperty}
+            getRenovateToMaxCost={calculateRenovateToMaxCost}
+            onApplyPermit={handleApplyPermit}
+            onStartConstruction={handleStartConstruction}
+            onRaiseFunds={handleRaiseFunds}
+            handleAcceptApplication={handleAcceptApplication}
+            setPaused={setPaused}
+          />
         )}
 
         {activeTab === "bank" && (

@@ -193,6 +193,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
               Listed
             </span>
           )}
+          {property.renovation && (
+            <span className='px-2 py-1 text-xs rounded-full bg-yellow-600 text-white'>
+              Renovating
+            </span>
+          )}
           {property.isRented && (
             <span className='px-2 py-1 text-xs rounded-full bg-green-500 text-white'>
               Rented

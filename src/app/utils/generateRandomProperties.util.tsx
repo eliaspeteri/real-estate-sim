@@ -960,7 +960,8 @@ export const generateRandomProperty = (
     saleListedDate: undefined,
     salePrice: undefined,
     saleOffers: [],
-    pendingEvictions: []
+    pendingEvictions: [],
+    renovation: undefined
   };
 };
 

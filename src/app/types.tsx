@@ -195,9 +195,10 @@ export interface TenantEvent {
     | "RENT_LATE"
     | "RENT_MISSED"
     | "DAMAGE"
-    | "LEASE_BREAK"
-    | "COMPLAINT"
-    | "RENEWAL";
+  | "LEASE_BREAK"
+  | "COMPLAINT"
+  | "RENOVATION"
+  | "RENEWAL";
   date: Date;
   description: string;
   financialImpact: number; // Positive for rent, negative for repairs
@@ -257,6 +258,7 @@ export interface Property {
   salePrice?: number;
   saleOffers?: PropertyOffer[];
   pendingEvictions?: PendingEviction[];
+  renovation?: RenovationStatus;
 }
 
 export interface PropertyOffer {
@@ -270,6 +272,12 @@ export interface PendingEviction {
   tenantId: string;
   startDate: Date;
   daysRemaining: number;
+}
+
+export interface RenovationStatus {
+  daysRemaining: number;
+  targetBonus: number;
+  targetValue: number;
 }
 
 export enum EventSeverity {

@@ -166,7 +166,8 @@ export const eventLibrary: GameEvent[] = [
 // Function to check if a new event should occur
 export const checkForNewEvents = (
   currentEvents: GameEvent[],
-  currentDate: Date
+  currentDate: Date,
+  probabilityMultiplier: number = 1
 ): GameEvent[] => {
   const newEvents: GameEvent[] = [];
 
@@ -185,7 +186,11 @@ export const checkForNewEvents = (
     }
 
     // Check probability
-    if (Math.random() < eventTemplate.probability) {
+    const adjustedProbability = Math.min(
+      0.5,
+      eventTemplate.probability * probabilityMultiplier
+    );
+    if (Math.random() < adjustedProbability) {
       // Create a new instance of the event
       const newEvent: GameEvent = {
         ...JSON.parse(JSON.stringify(eventTemplate)), // Deep copy
