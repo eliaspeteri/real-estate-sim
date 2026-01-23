@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:gh": "set GITHUB_PAGES=true&& next build",
+    "postbuild": "node -e \"require('fs').writeFileSync('out/.nojekyll','')\"",
+    "postbuild:gh": "node -e \"require('fs').writeFileSync('out/.nojekyll','')\"",
     "start": "npx serve@latest out",
     "lint": "next lint",
-    "predeploy": "npm run build",
-    "deploy": "npm run predeploy && gh-pages -d out"
+    "predeploy": "npm run build:gh",
+    "deploy": "npm run predeploy && gh-pages -d out --dotfiles"
   },
   "dependencies": {
     "next": "15.2.4",
