@@ -83,10 +83,13 @@ export const Bank: React.FC<BankProps> = ({
     Math.max(0, loanApprovalProbability + (loanApprovalImpact || 0) * 100)
   );
 
-  // Calculate maximum loan available now
-  const maxAvailableLoan = Math.min(
-    maxLoanAmount,
-    Math.max(0, assetValue * maxLoanToValueRatio - totalDebt)
+  // Calculate maximum loan available now (remaining headroom)
+  const maxAvailableLoan = Math.max(
+    0,
+    Math.min(
+      maxLoanAmount - totalDebt,
+      assetValue * maxLoanToValueRatio - totalDebt
+    )
   );
 
   // Admin fee for regular payment - should be 0 when no active loan
@@ -263,6 +266,11 @@ export const Bank: React.FC<BankProps> = ({
                 </div>
 
                 <div className='flex justify-between'>
+                  <span>Remaining Loan Limit:</span>
+                  <span>{formatCurrency(maxAvailableLoan)}</span>
+                </div>
+
+                <div className='flex justify-between'>
                   <span>Loan Approval Rating:</span>
                   <span
                     className={
@@ -306,6 +314,15 @@ export const Bank: React.FC<BankProps> = ({
                       className='w-full'
                       disabled={maxAvailableLoan <= 0}
                     />
+                    <div className='mt-2 flex justify-end'>
+                      <button
+                        className='px-3 py-1 text-xs rounded bg-gray-600 hover:bg-gray-500 text-white disabled:bg-gray-700 disabled:text-gray-400'
+                        onClick={() => setLoanAmount(maxAvailableLoan)}
+                        disabled={maxAvailableLoan <= 0}
+                      >
+                        Take Max
+                      </button>
+                    </div>
                   </div>
 
                   <div className='flex justify-between text-sm'>
