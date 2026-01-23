@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSettings } from "../../context/settings.context";
 
 interface RateProtectionPlan {
   active: boolean;
@@ -19,6 +20,8 @@ interface BankProps {
   interestRateHistory: { date: Date; rate: number }[];
   consecutivePayments: number;
   nextRateChangeDate: Date;
+  loanApprovalImpact?: number;
+  hasLoanHistory?: boolean;
   onTakeLoan: (amount: number) => void;
   onRepayLoan: (amount: number) => void;
   assetValue: number;
@@ -43,6 +46,8 @@ export const Bank: React.FC<BankProps> = ({
   interestRateHistory,
   consecutivePayments,
   nextRateChangeDate,
+  loanApprovalImpact,
+  hasLoanHistory = true,
   onTakeLoan,
   onRepayLoan,
   assetValue,
@@ -52,11 +57,12 @@ export const Bank: React.FC<BankProps> = ({
   onPurchaseRateProtection,
   onCancelRateProtection
 }) => {
-  const [loanAmount, setLoanAmount] = useState<number>(10000);
+  const [loanAmount, setLoanAmount] = useState<number>(0);
   const [showLoanForm, setShowLoanForm] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
     "loans" | "rates" | "history" | "protection"
   >("loans");
+  const { formatCurrency, formatDate } = useSettings();
 
   // Calculate remaining months until loan is fully paid
   const remainingMonths =
@@ -69,7 +75,12 @@ export const Bank: React.FC<BankProps> = ({
     bankCreditScore,
     totalDebt,
     assetValue,
-    maxLoanToValueRatio
+    maxLoanToValueRatio,
+    hasLoanHistory
+  );
+  const adjustedLoanApprovalProbability = Math.min(
+    100,
+    Math.max(0, loanApprovalProbability + (loanApprovalImpact || 0) * 100)
   );
 
   // Calculate maximum loan available now
@@ -85,15 +96,6 @@ export const Bank: React.FC<BankProps> = ({
   // Fee for early repayment (2% of remaining balance)
   const earlyRepaymentFee = Math.round(totalDebt * 0.02);
 
-  // Format date for display
-  const formatDate = (date: Date): string => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    }).format(date);
-  };
-
   // Calculate credit status label and color
   const getCreditStatus = () => {
     if (bankCreditScore >= 800)
@@ -108,6 +110,16 @@ export const Bank: React.FC<BankProps> = ({
   };
 
   const creditStatus = getCreditStatus();
+
+  React.useEffect(() => {
+    if (maxAvailableLoan <= 0) {
+      setLoanAmount(0);
+      return;
+    }
+    if (loanAmount > maxAvailableLoan) {
+      setLoanAmount(maxAvailableLoan);
+    }
+  }, [maxAvailableLoan, loanAmount]);
 
   return (
     <div className='bg-gray-800 rounded-lg p-6'>
@@ -170,25 +182,23 @@ export const Bank: React.FC<BankProps> = ({
                 <div className='flex justify-between'>
                   <span>Outstanding Balance:</span>
                   <span className='font-semibold'>
-                    ${totalDebt.toLocaleString()}
+                    {formatCurrency(totalDebt)}
                   </span>
                 </div>
 
                 <div className='flex justify-between'>
                   <span>Monthly Payment:</span>
-                  <span>${monthlyRepayment.toLocaleString()}</span>
+                  <span>{formatCurrency(monthlyRepayment)}</span>
                 </div>
 
                 <div className='flex justify-between'>
                   <span>Admin Fee:</span>
-                  <span>${monthlyAdminFee.toLocaleString()}</span>
+                  <span>{formatCurrency(monthlyAdminFee)}</span>
                 </div>
 
                 <div className='flex justify-between'>
                   <span>Total Monthly Cost:</span>
-                  <span>
-                    ${(monthlyRepayment + monthlyAdminFee).toLocaleString()}
-                  </span>
+                  <span>{formatCurrency(monthlyRepayment + monthlyAdminFee)}</span>
                 </div>
 
                 <div className='flex justify-between'>
@@ -212,8 +222,7 @@ export const Bank: React.FC<BankProps> = ({
                     onClick={() => onRepayLoan(totalDebt)}
                     disabled={playerMoney < totalDebt + earlyRepaymentFee}
                   >
-                    Pay Off Loan ($
-                    {(totalDebt + earlyRepaymentFee).toLocaleString()})
+                    Pay Off Loan ({formatCurrency(totalDebt + earlyRepaymentFee)})
                   </button>
                 )}
               </div>
@@ -239,7 +248,7 @@ export const Bank: React.FC<BankProps> = ({
                 </div>
 
                 <div className='flex justify-between'>
-                  <span>Current Debt Ratio:</span>
+                  <span>Debt-to-Asset Ratio:</span>
                   <span>{(currentDebtRatio * 100).toFixed(1)}%</span>
                 </div>
 
@@ -250,21 +259,21 @@ export const Bank: React.FC<BankProps> = ({
 
                 <div className='flex justify-between'>
                   <span>Maximum Loan Limit:</span>
-                  <span>${maxLoanAmount.toLocaleString()}</span>
+                  <span>{formatCurrency(maxLoanAmount)}</span>
                 </div>
 
                 <div className='flex justify-between'>
                   <span>Loan Approval Rating:</span>
                   <span
                     className={
-                      loanApprovalProbability > 80
+                      adjustedLoanApprovalProbability > 80
                         ? "text-green-400"
-                        : loanApprovalProbability > 50
+                        : adjustedLoanApprovalProbability > 50
                         ? "text-yellow-400"
                         : "text-red-400"
                     }
                   >
-                    {loanApprovalProbability}%
+                    {adjustedLoanApprovalProbability}%
                   </span>
                 </div>
               </div>
@@ -285,56 +294,55 @@ export const Bank: React.FC<BankProps> = ({
                 <div className='space-y-3'>
                   <div>
                     <label className='block mb-1'>
-                      Loan Amount: ${loanAmount.toLocaleString()}
+                      Loan Amount: {formatCurrency(loanAmount)}
                     </label>
                     <input
                       type='range'
-                      min={10000}
+                      min={0}
                       max={maxAvailableLoan}
                       step={5000}
                       value={loanAmount}
                       onChange={(e) => setLoanAmount(parseInt(e.target.value))}
                       className='w-full'
+                      disabled={maxAvailableLoan <= 0}
                     />
                   </div>
 
                   <div className='flex justify-between text-sm'>
-                    <span>Min: $10,000</span>
-                    <span>Max: ${maxAvailableLoan.toLocaleString()}</span>
+                    <span>Min: {formatCurrency(0)}</span>
+                    <span>Max: {formatCurrency(maxAvailableLoan)}</span>
                   </div>
 
                   <div className='text-sm space-y-1'>
                     <div className='flex justify-between'>
                       <span>Estimated Monthly Payment:</span>
                       <span>
-                        ${(loanAmount * (currentInterestRate / 12)).toFixed(2)}
+                        {formatCurrency(loanAmount * (currentInterestRate / 12))}
                       </span>
                     </div>
 
                     <div className='flex justify-between'>
                       <span>Admin Fee:</span>
                       <span>
-                        $
-                        {(
+                        {formatCurrency(
                           adminFeeFixed +
-                          loanAmount *
-                            (currentInterestRate / 12) *
-                            adminFeePercent
-                        ).toFixed(2)}
+                            loanAmount *
+                              (currentInterestRate / 12) *
+                              adminFeePercent
+                        )}
                       </span>
                     </div>
 
                     <div className='flex justify-between'>
                       <span>Total Monthly Cost:</span>
                       <span>
-                        $
-                        {(
+                        {formatCurrency(
                           loanAmount * (currentInterestRate / 12) +
-                          adminFeeFixed +
-                          loanAmount *
-                            (currentInterestRate / 12) *
-                            adminFeePercent
-                        ).toFixed(2)}
+                            adminFeeFixed +
+                            loanAmount *
+                              (currentInterestRate / 12) *
+                              adminFeePercent
+                        )}
                       </span>
                     </div>
 
@@ -347,14 +355,14 @@ export const Bank: React.FC<BankProps> = ({
                       <span>Approval Probability:</span>
                       <span
                         className={
-                          loanApprovalProbability > 80
+                          adjustedLoanApprovalProbability > 80
                             ? "text-green-400"
-                            : loanApprovalProbability > 50
+                            : adjustedLoanApprovalProbability > 50
                             ? "text-yellow-400"
                             : "text-red-400"
                         }
                       >
-                        {loanApprovalProbability}%
+                        {adjustedLoanApprovalProbability}%
                       </span>
                     </div>
                   </div>
@@ -364,8 +372,8 @@ export const Bank: React.FC<BankProps> = ({
                       className='flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded'
                       onClick={() => {
                         onTakeLoan(loanAmount);
-                        setShowLoanForm(false);
                       }}
+                      disabled={loanAmount <= 0 || maxAvailableLoan <= 0}
                     >
                       Apply
                     </button>
@@ -480,13 +488,13 @@ export const Bank: React.FC<BankProps> = ({
                         {formatDate(payment.date)}
                       </td>
                       <td className='py-2 text-right text-green-400'>
-                        ${payment.amount.toLocaleString()}
+                        {formatCurrency(payment.amount)}
                       </td>
                       <td className='py-2 text-right text-red-400'>
-                        ${payment.adminFee.toLocaleString()}
+                        {formatCurrency(payment.adminFee)}
                       </td>
                       <td className='py-2 text-right'>
-                        ${(payment.amount + payment.adminFee).toLocaleString()}
+                        {formatCurrency(payment.amount + payment.adminFee)}
                       </td>
                     </tr>
                   ))
@@ -506,19 +514,17 @@ export const Bank: React.FC<BankProps> = ({
               <div className='flex justify-between text-sm'>
                 <span className='font-medium'>Total Payments:</span>
                 <span>
-                  $
-                  {paymentHistory
-                    .reduce((sum, p) => sum + p.amount, 0)
-                    .toLocaleString()}
+                  {formatCurrency(
+                    paymentHistory.reduce((sum, p) => sum + p.amount, 0)
+                  )}
                 </span>
               </div>
               <div className='flex justify-between text-sm'>
                 <span className='font-medium'>Total Fees Paid:</span>
                 <span>
-                  $
-                  {paymentHistory
-                    .reduce((sum, p) => sum + p.adminFee, 0)
-                    .toLocaleString()}
+                  {formatCurrency(
+                    paymentHistory.reduce((sum, p) => sum + p.adminFee, 0)
+                  )}
                 </span>
               </div>
             </div>
@@ -550,7 +556,7 @@ export const Bank: React.FC<BankProps> = ({
                 </div>
                 <div className='flex justify-between mb-3'>
                   <span>Monthly Cost:</span>
-                  <span>${rateProtection.monthlyCost.toLocaleString()}</span>
+                  <span>{formatCurrency(rateProtection.monthlyCost)}</span>
                 </div>
                 <button
                   className='w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded'
@@ -592,7 +598,7 @@ export const Bank: React.FC<BankProps> = ({
                           </div>
                           <div className='flex justify-between mb-2'>
                             <span>Monthly Cost:</span>
-                            <span>${plan.cost.toLocaleString()}</span>
+                            <span>{formatCurrency(plan.cost)}</span>
                           </div>
                           <button
                             className='w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded'
@@ -636,7 +642,8 @@ export function calculateLoanApproval(
   creditScore: number,
   totalDebt: number,
   assetValue: number,
-  maxLoanToValueRatio: number
+  maxLoanToValueRatio: number,
+  hasLoanHistory: boolean = true
 ): number {
   // Base probability from credit score (50-100%)
   const creditFactor = Math.min(100, 50 + creditScore / 20);
@@ -649,7 +656,9 @@ export function calculateLoanApproval(
   }
 
   // Calculate final probability
-  const probability = Math.min(100, (creditFactor + debtFactor) / 2);
+  const baseProbability = Math.min(100, (creditFactor + debtFactor) / 2);
+  const historyPenalty = hasLoanHistory ? 0 : 15;
+  const probability = Math.max(0, baseProbability - historyPenalty);
 
   return Math.round(probability);
 }

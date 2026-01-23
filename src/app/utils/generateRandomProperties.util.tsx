@@ -3,6 +3,7 @@ import {
   Location,
   PropertyType,
   Property,
+  Tenant,
   ADJECTIVES,
   NeighborhoodQuality,
   ViewQuality,
@@ -15,6 +16,7 @@ import {
 import { calculateMaintenanceCost } from "./calculateMaintenanceCost.util";
 import { calculateRent } from "./calculateRent.util";
 import { calculateValue } from "./calculateValue.util";
+import { generateRandomTenant } from "./generateTenant.util";
 
 const getRandomAdjective = (): string => {
   const randomIndex = Math.floor(Math.random() * ADJECTIVES.length);
@@ -24,6 +26,13 @@ const getRandomLocation = (): Location => {
   const locations = Object.values(Location);
   const randomIndex = Math.floor(Math.random() * locations.length);
   return locations[randomIndex];
+};
+
+const getMaintenanceStatus = (renovationBonusPercentage: number): string => {
+  if (renovationBonusPercentage >= 90) return "Recently renovated";
+  if (renovationBonusPercentage >= 70) return "Well maintained";
+  if (renovationBonusPercentage >= 40) return "Needs some repairs";
+  return "Major repairs needed";
 };
 
 // Function get random number of rooms based on location and property type
@@ -104,6 +113,24 @@ const getRandomRooms = (
   return Math.floor(Math.random() * (maxRooms - minRooms + 1)) + minRooms;
 };
 
+const clampRoomsForSize = (
+  propertyType: PropertyType,
+  size: number,
+  rooms: number | null
+): number | null => {
+  if (!rooms || size <= 0) return rooms;
+
+  const minRoomSize =
+    propertyType === PropertyType.COMMERCIAL ||
+    propertyType === PropertyType.INDUSTRIAL ||
+    propertyType === PropertyType.MIXED_USE
+      ? 25
+      : 15;
+  const maxRoomsBySize = Math.max(1, Math.floor(size / minRoomSize));
+
+  return Math.min(rooms, maxRoomsBySize);
+};
+
 // Function get random size based on location and property type
 const getRandomSize = (
   location: Location,
@@ -161,6 +188,40 @@ const getRandomSize = (
   }
 
   return Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize; // Random size between min and max
+};
+
+const getUnitCount = (propertyType: PropertyType, size: number): number => {
+  if (
+    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(propertyType)
+  ) {
+    const unitSize = propertyType === PropertyType.SKYSCRAPER_CONDO ? 35 : 45;
+    return Math.min(50, Math.max(2, Math.floor(size / unitSize)));
+  }
+
+  if (propertyType === PropertyType.MIXED_USE) {
+    return Math.min(20, Math.max(2, Math.floor(size / 60)));
+  }
+
+  return 1;
+};
+
+const getIntendedPurpose = (
+  propertyType: PropertyType
+): "Housing" | "Business" | "Mixed" => {
+  if (
+    [
+      PropertyType.COMMERCIAL,
+      PropertyType.INDUSTRIAL
+    ].includes(propertyType)
+  ) {
+    return "Business";
+  }
+
+  if (propertyType === PropertyType.MIXED_USE) {
+    return "Mixed";
+  }
+
+  return "Housing";
 };
 
 // Function to get a random property type based on location
@@ -708,13 +769,15 @@ export const generateRandomProperty = (
   const buildingDate = new Date(
     Date.now() - Math.floor(Math.random() * 100 * 365 * 24 * 60 * 60 * 1000)
   ); // Random date within the last 100 years
-  const maintenance = "Needs some repairs";
   const renovationBonusPercentage = Math.min(
     Math.floor(Math.random() * 101),
     100
   );
+  const maintenance = getMaintenanceStatus(renovationBonusPercentage);
   const size = getRandomSize(location, type);
-  const rooms = getRandomRooms(location, type);
+  const rooms = clampRoomsForSize(type, size, getRandomRooms(location, type));
+  const units = getUnitCount(type, size);
+  const unitSize = units > 0 ? size / units : size;
 
   // Generate new property attributes
   const neighborhoodQuality = getRandomNeighborhoodQuality(location);
@@ -775,14 +838,48 @@ export const generateRandomProperty = (
   const owner = null;
   const timeOnMarket = Math.floor(Math.random() * (90 - 1 + 1)) + 1;
   const maintenanceCosts = calculateMaintenanceCost(location, size, value);
-  const intendedPurpose = Math.random() < 0.5 ? "Housing" : "Business";
+  const intendedPurpose = getIntendedPurpose(type);
+  const isProtected = Math.random() < 0.08;
   const rentPrice = calculateRent(
     location,
-    size,
+    unitSize,
     renovationBonusPercentage / 100
   );
-  const isRented = false; // Start as not rented
-  const rentee = null;
+  let isRented = false;
+  let unitTenants: Property["unitTenants"] = [];
+  let occupiedUnits = 0;
+  let rentee: string | null = null;
+  let currentTenant: Property["currentTenant"] = undefined;
+  let leaseStart: Property["leaseStart"] = undefined;
+  let leaseLength: Property["leaseLength"] = undefined;
+
+  if (type !== PropertyType.LAND && Math.random() < 0.25) {
+    const targetOccupancy = Math.max(
+      1,
+      Math.min(units, Math.round(units * (0.4 + Math.random() * 0.4)))
+    );
+    const seededTenants: Tenant[] = [];
+
+    for (let i = 0; i < targetOccupancy; i += 1) {
+      const tenant = generateRandomTenant(rentPrice);
+      const startDate = new Date(
+        Date.now() - Math.floor(Math.random() * 18 + 1) * 30 * 24 * 60 * 60 * 1000
+      );
+      seededTenants.push({
+        ...tenant,
+        leaseStart: startDate,
+        rentAmount: rentPrice
+      });
+    }
+
+    unitTenants = seededTenants;
+    occupiedUnits = seededTenants.length;
+    isRented = occupiedUnits > 0;
+    rentee = seededTenants[0]?.name ?? null;
+    currentTenant = seededTenants[0];
+    leaseStart = seededTenants[0]?.leaseStart;
+    leaseLength = seededTenants[0]?.leaseLength;
+  }
   const listedDate = new Date(); // Current date as listing date
   const isNew = true; // Flag as new property
 
@@ -832,6 +929,11 @@ export const generateRandomProperty = (
     maintenanceCosts,
     intendedPurpose,
     rentPrice,
+    units,
+    occupiedUnits,
+    unitTenants,
+    listingKeywords: [],
+    listingCopy: "",
     isRented,
     rentee,
     neighborhoodQuality,
@@ -847,7 +949,17 @@ export const generateRandomProperty = (
     tenantHistory: [],
     tenantEvents: [],
     leaseApplications: [],
-    propertyTax: 0
+    leaseStart,
+    leaseLength,
+    propertyTax: 0,
+    development: undefined,
+    developmentFunding: 0,
+    isProtected,
+    forSale: false,
+    saleListedDate: undefined,
+    salePrice: undefined,
+    saleOffers: [],
+    pendingEvictions: []
   };
 };
 

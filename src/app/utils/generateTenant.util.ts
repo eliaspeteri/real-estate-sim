@@ -1,4 +1,4 @@
-import { LeaseApplication, Occupation, Tenant } from "../types";
+import { LeaseApplication, ListingKeyword, Occupation, Tenant } from "../types";
 import { v4 as uuidv4 } from "uuid";
 
 // Generate a random name for a tenant
@@ -104,6 +104,96 @@ export const calculateTenantEventProbability = (
   }
 
   return baseProbabilities[eventType] || 0;
+};
+
+const LISTING_KEYWORD_IMPACTS: Record<
+  ListingKeyword,
+  { quality: number; count: number }
+> = {
+  luxury: { quality: 0.15, count: -0.05 },
+  budget: { quality: -0.1, count: 0.2 },
+  family: { quality: 0.02, count: 0.1 },
+  pet_friendly: { quality: -0.02, count: 0.08 },
+  quiet: { quality: 0.05, count: -0.05 },
+  transit: { quality: 0.04, count: 0.08 },
+  modern: { quality: 0.06, count: 0.02 },
+  flexible_lease: { quality: -0.05, count: 0.12 }
+};
+
+export const calculateListingImpact = (
+  listingKeywords: ListingKeyword[] = []
+): { quality: number; count: number } => {
+  return listingKeywords.reduce(
+    (acc, keyword) => {
+      const impact = LISTING_KEYWORD_IMPACTS[keyword];
+      return {
+        quality: acc.quality + impact.quality,
+        count: acc.count + impact.count
+      };
+    },
+    { quality: 0, count: 0 }
+  );
+};
+
+export const extractListingKeywords = (
+  listingCopy: string = ""
+): ListingKeyword[] => {
+  const copy = listingCopy.toLowerCase();
+  const keywords: ListingKeyword[] = [];
+
+  if (/(luxury|premium|high[- ]?end|exclusive)/.test(copy)) {
+    keywords.push("luxury");
+  }
+  if (/(budget|affordable|low cost|cheap)/.test(copy)) {
+    keywords.push("budget");
+  }
+  if (/(family|kids|schools|playground)/.test(copy)) {
+    keywords.push("family");
+  }
+  if (/(pet|pets|pet-friendly|pet friendly)/.test(copy)) {
+    keywords.push("pet_friendly");
+  }
+  if (/(quiet|peaceful|calm|no noise)/.test(copy)) {
+    keywords.push("quiet");
+  }
+  if (/(transit|metro|subway|train|bus)/.test(copy)) {
+    keywords.push("transit");
+  }
+  if (/(modern|new|renovated|updated)/.test(copy)) {
+    keywords.push("modern");
+  }
+  if (/(flexible|short-term|short term|month-to-month)/.test(copy)) {
+    keywords.push("flexible_lease");
+  }
+
+  return keywords;
+};
+
+const applyListingPreferences = (
+  tenant: Tenant,
+  listingKeywords: ListingKeyword[] = []
+): Tenant => {
+  if (listingKeywords.length === 0) return tenant;
+
+  const keywordSet = new Set(listingKeywords);
+
+  if (keywordSet.has("pet_friendly")) {
+    tenant.pets = Math.random() < 0.85;
+  }
+
+  if (keywordSet.has("family")) {
+    tenant.familySize = Math.max(
+      tenant.familySize,
+      3 + Math.floor(Math.random() * 3)
+    );
+  }
+
+  if (keywordSet.has("quiet")) {
+    tenant.smoker = Math.random() < 0.1;
+    tenant.familySize = Math.min(tenant.familySize, 2);
+  }
+
+  return tenant;
 };
 
 // Generate a random tenant based on rental price
@@ -250,7 +340,8 @@ export const generateRandomTenant = (rentPrice: number): Tenant => {
 export const generateLeaseApplications = (
   rentalPrice: number,
   count: number,
-  tenantQualityModifier: number = 0 // New parameter
+  tenantQualityModifier: number = 0,
+  listingKeywords: ListingKeyword[] = []
 ): LeaseApplication[] => {
   console.log(
     `Generating ${count} lease applications for rent price $${rentalPrice}`
@@ -291,12 +382,15 @@ export const generateLeaseApplications = (
     // Use the generateCreditScore function to adjust the tenant's credit score based on quality modifier
     const baseQuality = Math.random(); // Random base quality between 0-1
     tenant.creditScore = generateCreditScore(baseQuality);
+    applyListingPreferences(tenant, listingKeywords);
 
     // Generate desired lease length (might be different from tenant's lease length)
     // This allows for negotiation on lease term length
-    const desiredLeaseLength = [6, 12, 12, 18, 24][
-      Math.floor(Math.random() * 5)
-    ];
+    const leaseOptions = listingKeywords.includes("flexible_lease")
+      ? [6, 6, 12, 12, 18]
+      : [6, 12, 12, 18, 24];
+    const desiredLeaseLength =
+      leaseOptions[Math.floor(Math.random() * leaseOptions.length)];
 
     // Application fee
     const applicationFee = 50;
