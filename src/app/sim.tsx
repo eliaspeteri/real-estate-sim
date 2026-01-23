@@ -383,7 +383,7 @@ const RealEstateSim: React.FC = () => {
         ...prev
       ].slice(0, NOTIFICATION_LIMIT)
     );
-  }, [toastMessage]);
+  }, [toastMessage, currentDate]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -907,7 +907,6 @@ const RealEstateSim: React.FC = () => {
       });
     },
     [
-      calculateListingImpact,
       getListingKeywordsForProperty,
       getRandomBuyerName,
       realEstateAgent

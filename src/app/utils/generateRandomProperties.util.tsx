@@ -936,6 +936,7 @@ export const generateRandomProperty = (
     listingCopy: "",
     isRented,
     rentee,
+    currentTenant,
     neighborhoodQuality,
     amenities,
     specialFeatures,
