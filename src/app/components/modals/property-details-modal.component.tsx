@@ -113,8 +113,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
   const tenants = property.unitTenants?.length
     ? property.unitTenants
     : property.currentTenant
-    ? [property.currentTenant]
-    : [];
+      ? [property.currentTenant]
+      : [];
   const evictionByTenantId = new Map(
     (property.pendingEvictions || []).map((eviction) => [
       eviction.tenantId,
@@ -154,7 +154,12 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     setListingKeywords(property.listingKeywords || []);
     setListingCopy(property.listingCopy || "");
     setRentPriceInput(property.rentPrice);
-  }, [property.id, property.listingKeywords, property.listingCopy, property.rentPrice]);
+  }, [
+    property.id,
+    property.listingKeywords,
+    property.listingCopy,
+    property.rentPrice
+  ]);
 
   // Handle main modal closing with animation
   const handleClose = () => {
@@ -536,7 +541,9 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 </span>
 
                 <span className='text-gray-400'>Job Growth:</span>
-                <span>{formatPercent(property.economicIndicators.jobGrowth)}</span>
+                <span>
+                  {formatPercent(property.economicIndicators.jobGrowth)}
+                </span>
 
                 <span className='text-gray-400'>Property Supply:</span>
                 <span>{property.marketTrends.propertySupply} listings</span>
@@ -556,9 +563,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
                 <span className='text-gray-400'>Unemployment Rate:</span>
                 <span>
-                  {formatPercent(
-                    property.economicIndicators.unemploymentRate
-                  )}
+                  {formatPercent(property.economicIndicators.unemploymentRate)}
                 </span>
               </div>
             </div>
@@ -722,12 +727,12 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   e.stopPropagation();
                   onRenovate(property.id);
                 }}
-                disabled={
+                disabled={Boolean(
                   property.renovationBonusPercentage >= 100 ||
                   property.isRented ||
                   property.renovation ||
                   (playerMoney !== undefined && playerMoney < renovationCost)
-                }
+                )}
               >
                 Renovate ({formatCurrency(renovationCost)})
               </button>
@@ -740,13 +745,13 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   e.stopPropagation();
                   onRenovateToMax(property.id);
                 }}
-                disabled={
+                disabled={Boolean(
                   property.renovationBonusPercentage >= 100 ||
                   property.isRented ||
                   property.renovation ||
                   !renovateToMaxCost ||
                   (playerMoney !== undefined && playerMoney < renovateToMaxCost)
-                }
+                )}
               >
                 Renovate to 100% ({formatCurrency(renovateToMaxCost || 0)})
               </button>
@@ -891,9 +896,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   </div>
                   <p className='text-xs text-gray-400 mt-2'>
                     {marketRent > 0
-                      ? `Market rent: ${formatCurrency(
-                          marketRent
-                        )}/month`
+                      ? `Market rent: ${formatCurrency(marketRent)}/month`
                       : "Market rent unavailable"}
                     {marketRent > 0 && rentDeltaPercent !== 0 && (
                       <span
@@ -914,14 +917,12 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               {onUpdateListing && (
                 <>
                   <p className='text-xs text-gray-400 mb-3'>
-                    Keywords influence how many applications you receive and
-                    the kind of tenants who apply.
+                    Keywords influence how many applications you receive and the
+                    kind of tenants who apply.
                   </p>
                   <div className='flex flex-wrap gap-2'>
                     {LISTING_KEYWORD_OPTIONS.map((option) => {
-                      const isSelected = listingKeywords.includes(
-                        option.value
-                      );
+                      const isSelected = listingKeywords.includes(option.value);
                       return (
                         <button
                           key={option.value}
@@ -981,7 +982,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
               {onRaiseFunds && (
                 <div className='mb-3'>
-                  {property.developmentFunding && property.developmentFunding > 0 ? (
+                  {property.developmentFunding &&
+                  property.developmentFunding > 0 ? (
                     <p className='text-gray-300'>
                       Development funding raised:{" "}
                       {formatCurrency(property.developmentFunding)}
@@ -1023,8 +1025,8 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
               {property.development?.phase === "permitting" && (
                 <div className='text-gray-200'>
-                  Permit review in progress. {property.development.daysRemaining}{" "}
-                  days remaining.
+                  Permit review in progress.{" "}
+                  {property.development.daysRemaining} days remaining.
                 </div>
               )}
 
