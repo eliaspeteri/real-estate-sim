@@ -140,6 +140,14 @@ const getMonthsElapsed = (startDate: Date, endDate: Date): number => {
   return Math.max(0, total);
 };
 
+const getSeasonalityMultiplier = (date: Date): number => {
+  const month = date.getMonth();
+  if (month >= 2 && month <= 4) return 1.1; // Spring
+  if (month >= 8 && month <= 10) return 1.05; // Fall
+  if (month >= 11 || month <= 1) return 0.9; // Winter
+  return 1.0; // Summer
+};
+
 const applyUnitState = (property: Property, unitTenants: Tenant[]) => {
   const units = deriveUnitCount(property);
   const occupiedUnits = Math.min(units, unitTenants.length);
@@ -936,6 +944,7 @@ const RealEstateSim: React.FC = () => {
   const applyMarketAdjustments = useCallback(
     (currentProperties: Property[]) => {
       const activeEvents = events.filter((event) => event.isActive);
+      const seasonalMultiplier = getSeasonalityMultiplier(currentDate);
 
       return currentProperties.map((property) => {
         const annualRate = property.marketTrends.historicalAppreciation / 100;
@@ -954,7 +963,6 @@ const RealEstateSim: React.FC = () => {
           property.type
         );
 
-        const seasonalMultiplier = property.marketTrends.seasonality || 1;
         const totalRate = monthlyTrend + eventImpact + areaImpact * 0.2;
         const newValue = Math.max(
           0,
@@ -977,7 +985,7 @@ const RealEstateSim: React.FC = () => {
         };
       });
     },
-    [events]
+    [events, currentDate]
   );
 
   const simulateAIActions = useCallback(
