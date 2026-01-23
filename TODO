@@ -1,7 +1,7 @@
 Features
 - [x]Time
 - [x] Money
-- [ ] AI opponents (Blocked by moving data handling to backend)
+- [x] AI opponents (Blocked by moving data handling to backend)
 - [x] Generate right type of properties for the right location
   - Downtown:
     - Apartments
@@ -63,25 +63,24 @@ Features
     - 100000 - 1000000
   - Country:
     - 50000 - 500000
-- [-] Buy and sell properties
-  - [ ] Filters for listing view
+- [x] Buy and sell properties
+  - [x] Filters for listing view
 	- [x] Min and max price
 	- [x] Location
 	- [x] Property type
-	- [x] Condition
-	- [ ] Features
-	- [ ] Economic factors
-  - Outsource for a real estate agent for a price.
+	- [x] Features
+	- [x] Remove economic/condition/market trend filters (no giveaways)
+  - [x] Outsource for a real estate agent for a price.
   Properties have
     - [x] Address
     - [x] Value. Can be affected by events. Usually purchase price.
     - [x] Type (House, Apartment, etc.)
-    - [ ] Intended purpose
+    - [x] Intended purpose
       - Housing
       - Business
     - [x] Description
     - [x] Building date. Can be new development or old building.
-    - Maintenance done or which needs to be done.
+    - [x] Maintenance done or which needs to be done.
     - [x] Name
     - [x] Purchase price. Can be negotiated.
     - [x] Size
@@ -90,18 +89,19 @@ Features
     - [x] Owner. Currently Player or not.
     - [x] Variable time on the market. This is affected by events, location etc. How "hot" the market is.
     - [x] Maintenance costs by size.
-- [-] Rent out properties
+- [x] Rent out properties
   - [x] Choose the right rentee
     - [x] Rentee might occupy the property a short or long time.
     - Bad rentee can cause damage to the property.
     - Good rentee can pay more.
-  - Choose the right rental price to keep the property rented out.
-  - Write listing -> Keywords in the listing will help attract the right type of rentees.
+  - [x] Choose the right rental price to keep the property rented out.
+  - [x] Write listing -> Keywords in the listing will help attract the right type of rentees.
   - [x] Outsource for a property manager for a price.
+  - [x] Multi-unit rentals for apartment buildings
 - [x] Renovate properties
   - [x] Choose the right renovation company or do it yourself
   - [x] You can't renovate while renting out the property.
-- [ ] Events & Opportunities
+- [x] Events & Opportunities
 	This is a big feature. Minor events can happen more often, and have minor effects. Major events happen more rarely and have major effects. An event effect should be a factor in several places such as:
 	- interest rate calculation (hyperinflation causes interest rates to go up, depression causes interest rates to go down)
 	- probability for getting loan from bank (poor economy makes banks more tight with lending, and good economy makes banks more open to lending)
@@ -116,27 +116,27 @@ Features
 	We can leverage the modal system for creating choices related to events. The choices will decide how much the events will impact the player.
 
 	There should also be a new feature in the banking system to buy interest rate protection for the loans the player has taken. This will cap the interest rates at a percentage chosen by player. Smaller cap will be more expensive per month.
-  - [ ] Minor and major events
-  - [ ] Impacting choices
-  - [ ] Positive and negative effects
+  - [x] Minor and major events
+  - [x] Impacting choices
+  - [x] Positive and negative effects
 
-- [-] Bank loans
-  - [ ] Interest rate protection, costs extra
-  - [ ] Events impact loan availability
+- [x] Bank loans
+  - [x] Interest rate protection, costs extra
+  - [x] Events impact loan availability
   - [x] Banks will only finance 70 % loan to value ratio
 - [x] Interest rates
-- Housing market
+- [x] Housing market
 - [x] Taxes
   - Tax planning
   - [x] Tax on rental income
   - [x] Tax on property value
   - [x] Tax on buying and selling properties
-  - [ ] Modular tax system based on fixed rules or localization (Blocked by localization)
-- [-] Maintenance costs
+  - [x] Modular tax system based on fixed rules or localization
+- [x] Maintenance costs
 - [x] Fees
 - [x] Cash flow reports
-- Building properties
-  - Dealing with permits
-  - Raising funds
-- [ ] Localization
-- [ ] Move data handling to backend
+- [x] Building properties
+  - [x] Dealing with permits
+  - [x] Raising funds
+- [x] Localization
+- [x] Move data handling to backend
