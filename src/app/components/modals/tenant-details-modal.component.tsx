@@ -1,21 +1,36 @@
 import React from "react";
-import { Property } from "../../types";
+import { Property, Tenant } from "../../types";
+import { useSettings } from "../../context/settings.context";
+import {
+  calculateEvictionCost,
+  calculateEvictionDurationDays
+} from "../../utils/eviction.util";
 
 interface TenantDetailsModalProps {
   property: Property;
+  tenant?: Tenant;
   onClose: () => void;
-  onEvictTenant?: (propertyId: number) => void;
+  onEvictTenant?: (propertyId: number, tenantId?: string) => void;
   isCardDeck?: boolean;
+  currentDate?: Date;
 }
 
 const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
   property,
+  tenant: tenantOverride,
   onClose,
   onEvictTenant,
-  isCardDeck = false
+  isCardDeck = false,
+  currentDate
 }) => {
-  if (!property.currentTenant) return null;
-  const tenant = property.currentTenant;
+  const { formatCurrency, formatDate } = useSettings();
+  const tenant = tenantOverride || property.currentTenant;
+  if (!tenant) return null;
+  const evictionCost = calculateEvictionCost(property);
+  const evictionDuration = calculateEvictionDurationDays(property);
+  const pendingEviction = (property.pendingEvictions || []).find(
+    (eviction) => eviction.tenantId === tenant.id
+  );
 
   // Calculate rental history stats
   const calculatePaymentStats = () => {
@@ -49,7 +64,7 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
     const leaseEnd = new Date(leaseStart);
     leaseEnd.setMonth(leaseEnd.getMonth() + tenant.leaseLength);
 
-    const today = new Date();
+    const today = currentDate ? new Date(currentDate) : new Date();
     const remainingMonths =
       (leaseEnd.getFullYear() - today.getFullYear()) * 12 +
       (leaseEnd.getMonth() - today.getMonth());
@@ -72,7 +87,7 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
           <span>{tenant.occupation}</span>
 
           <span className='text-gray-400'>Monthly Income:</span>
-          <span>${tenant.monthlyIncome.toLocaleString()}</span>
+          <span>{formatCurrency(tenant.monthlyIncome)}</span>
 
           <span className='text-gray-400'>Income/Rent Ratio:</span>
           <span
@@ -122,13 +137,13 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
 
           <span className='text-gray-400'>Monthly Rent:</span>
           <span className='text-green-400'>
-            ${property.rentPrice.toLocaleString()}
+            {formatCurrency(property.rentPrice)}
           </span>
 
           <span className='text-gray-400'>Lease Start:</span>
           <span>
             {tenant.leaseStart
-              ? new Date(tenant.leaseStart).toLocaleDateString()
+              ? formatDate(new Date(tenant.leaseStart))
               : "N/A"}
           </span>
 
@@ -137,6 +152,15 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             {remainingLeaseMonths}{" "}
             {remainingLeaseMonths === 1 ? "month" : "months"}
           </span>
+
+          {pendingEviction && (
+            <>
+              <span className='text-gray-400'>Eviction:</span>
+              <span className='text-red-300'>
+                {pendingEviction.daysRemaining} days remaining
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -238,7 +262,7 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                         : "Event"}
                     </span>
                     <span className='text-xs text-gray-400'>
-                      {new Date(event.date).toLocaleDateString()}
+                      {formatDate(new Date(event.date))}
                     </span>
                   </div>
                   <p className='text-gray-300'>{event.description}</p>
@@ -250,8 +274,8 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
                           : "text-red-400"
                       }
                     >
-                      Financial Impact: $
-                      {Math.abs(event.financialImpact).toLocaleString()}
+                      Financial Impact:{" "}
+                      {formatCurrency(Math.abs(event.financialImpact))}
                     </p>
                   )}
                 </div>
@@ -269,7 +293,7 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             className='w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded'
             onClick={() => {
               if (onEvictTenant) {
-                onEvictTenant(property.id);
+                onEvictTenant(property.id, tenant.id);
                 onClose();
               }
             }}
@@ -277,8 +301,9 @@ const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({
             Evict Tenant
           </button>
           <p className='text-xs text-gray-400 mt-2'>
-            Warning: Eviction costs $1,000 in legal fees and may leave your
-            property vacant.
+            Warning: Eviction costs {formatCurrency(evictionCost)} and can take
+            about {evictionDuration} days. Rent is not collected during the
+            process.
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { GameEvent, EventSeverity, EventChoice } from "../../types";
+import { useSettings } from "../../context/settings.context";
 
 interface EventDetailsModalProps {
   event: GameEvent;
@@ -17,6 +18,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   playerMoney
 }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const { formatCurrency } = useSettings();
 
   useEffect(() => {
     if (isOpen) {
@@ -198,7 +200,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                         disabled={!canAffordChoice(choice)}
                       >
                         {choice.requiredMoney
-                          ? `Choose ($${choice.requiredMoney.toLocaleString()})`
+                          ? `Choose (${formatCurrency(choice.requiredMoney)})`
                           : "Choose"}
                         {!canAffordChoice(choice) && " - Cannot Afford"}
                       </button>

@@ -5,12 +5,24 @@ import { LeaseApplication, Property } from "../../types";
 interface MyPropertiesProps {
   properties: Property[];
   onBuyOrSell: (propertyId: number) => void;
-  onRent: (propertyId: number) => void;
+  onRent: (propertyId: number, options?: { showModal?: boolean }) => void;
   onRenovate: (propertyId: number) => void;
-  onEvictTenant?: (propertyId: number) => void;
+  onEvictTenant?: (propertyId: number, tenantId?: string) => void;
+  currentDate?: Date;
   playerMoney: number;
   outsourcedProperties?: Set<number>;
   onToggleOutsource?: (propertyId: number) => void;
+  onUpdateListing?: (
+    propertyId: number,
+    listingKeywords: Property["listingKeywords"]
+  ) => void;
+  onUpdateListingCopy?: (propertyId: number, listingCopy: string) => void;
+  onUpdateRentPrice?: (propertyId: number, rentPrice: number) => void;
+  onAcceptOffer?: (propertyId: number, offerId: string) => void;
+  onBulldoze?: (propertyId: number) => void;
+  onApplyPermit?: (propertyId: number) => void;
+  onStartConstruction?: (propertyId: number) => void;
+  onRaiseFunds?: (propertyId: number) => void;
   handleAcceptApplication?: (
     property: Property,
     application: LeaseApplication
@@ -24,9 +36,18 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
   onRent,
   onRenovate,
   onEvictTenant,
+  currentDate,
   playerMoney,
   outsourcedProperties = new Set(),
   onToggleOutsource,
+  onUpdateListing,
+  onUpdateListingCopy,
+  onUpdateRentPrice,
+  onAcceptOffer,
+  onBulldoze,
+  onApplyPermit,
+  onStartConstruction,
+  onRaiseFunds,
   handleAcceptApplication,
   setPaused
 }) => {
@@ -78,9 +99,18 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
             onRent={onRent}
             onRenovate={onRenovate}
             onEvictTenant={onEvictTenant}
+            currentDate={currentDate}
             playerMoney={playerMoney}
             isOutsourced={outsourcedProperties.has(property.id)}
             onToggleOutsource={onToggleOutsource}
+            onUpdateListing={onUpdateListing}
+            onUpdateListingCopy={onUpdateListingCopy}
+            onUpdateRentPrice={onUpdateRentPrice}
+            onAcceptOffer={onAcceptOffer}
+            onBulldoze={onBulldoze}
+            onApplyPermit={onApplyPermit}
+            onStartConstruction={onStartConstruction}
+            onRaiseFunds={onRaiseFunds}
             handleAcceptApplication={handleAcceptApplication}
             setPaused={setPaused}
           />

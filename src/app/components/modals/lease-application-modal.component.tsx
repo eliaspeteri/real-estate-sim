@@ -1,5 +1,6 @@
 import React from "react";
 import { LeaseApplication, Property } from "../../types";
+import { useSettings } from "../../context/settings.context";
 
 interface LeaseApplicationModalProps {
   property: Property;
@@ -19,6 +20,7 @@ const LeaseApplicationModal: React.FC<LeaseApplicationModalProps> = ({
   onAcceptApplication,
   isCardDeck = false
 }) => {
+  const { formatCurrency } = useSettings();
   if (applications.length === 0) {
     return (
       <div className='p-4 text-center'>
@@ -67,7 +69,7 @@ const LeaseApplicationModal: React.FC<LeaseApplicationModalProps> = ({
               <span>{tenant.occupation}</span>
 
               <span className='text-gray-400'>Monthly Income:</span>
-              <span>${tenant.monthlyIncome.toLocaleString()}</span>
+              <span>{formatCurrency(tenant.monthlyIncome)}</span>
 
               <span className='text-gray-400'>Income/Rent Ratio:</span>
               <span
