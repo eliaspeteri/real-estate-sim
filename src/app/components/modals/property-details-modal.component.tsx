@@ -246,13 +246,18 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     marketRent > 0
       ? Math.round(((rentPriceInput - marketRent) / marketRent) * 100)
       : 0;
+  const purchasePrice =
+    property.purchasePrice !== undefined
+      ? property.purchasePrice
+      : property.marketPrice;
 
   // Calculate return on investment for owned properties
   const calculateROI = () => {
     if (!isOwnedByPlayer || !property.purchaseDate) return null;
+    if (purchasePrice <= 0) return null;
 
-    const valueGain = property.value - property.marketPrice;
-    const percentageGain = (valueGain / property.marketPrice) * 100;
+    const valueGain = property.value - purchasePrice;
+    const percentageGain = (valueGain / purchasePrice) * 100;
 
     const purchaseDate = new Date(property.purchaseDate);
     const currentDate = new Date();
@@ -264,7 +269,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     const years = monthsHeld / 12;
     const annualizedROI =
       years > 0
-        ? (Math.pow(1 + valueGain / property.marketPrice, 1 / years) - 1) * 100
+        ? (Math.pow(1 + valueGain / purchasePrice, 1 / years) - 1) * 100
         : 0;
 
     return {
@@ -381,7 +386,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                 {isOwnedByPlayer ? (
                   <>
                     <span className='text-gray-400'>Purchase Price:</span>
-                    <span>{formatCurrency(property.marketPrice)}</span>
+                    <span>{formatCurrency(purchasePrice)}</span>
 
                     <span className='text-gray-400'>Current Value:</span>
                     <span className='text-green-400'>

@@ -67,7 +67,12 @@ export const Reports = ({
   const averageROI =
     ownedProperties.length > 0
       ? (ownedProperties.reduce(
-          (sum, p) => sum + (p.value - p.marketPrice) / p.marketPrice,
+          (sum, p) => {
+            const purchasePrice =
+              p.purchasePrice !== undefined ? p.purchasePrice : p.marketPrice;
+            if (purchasePrice <= 0) return sum;
+            return sum + (p.value - purchasePrice) / purchasePrice;
+          },
           0
         ) /
           ownedProperties.length) *
@@ -159,11 +164,15 @@ export const Reports = ({
           </thead>
           <tbody className='divide-y divide-gray-700'>
             {ownedProperties.map((property) => {
-              const roi = (
-                ((property.value - property.marketPrice) /
-                  property.marketPrice) *
-                100
-              ).toFixed(2);
+              const purchasePrice =
+                property.purchasePrice !== undefined
+                  ? property.purchasePrice
+                  : property.marketPrice;
+              const roiValue =
+                purchasePrice > 0
+                  ? ((property.value - purchasePrice) / purchasePrice) * 100
+                  : 0;
+              const roi = roiValue.toFixed(2);
 
               const monthlyIncome = property.isRented
                 ? property.rentPrice * getOccupiedUnits(property)
@@ -177,7 +186,7 @@ export const Reports = ({
                 <tr key={property.id}>
                   <td className='px-4 py-2'>{property.address}</td>
                   <td className='px-4 py-2'>
-                    {formatCurrency(property.marketPrice)}
+                    {formatCurrency(purchasePrice)}
                   </td>
                   <td className='px-4 py-2'>
                     {formatCurrency(property.value)}

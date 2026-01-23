@@ -241,6 +241,7 @@ export interface Property {
   listedDate: Date; // When the property was listed on the market
   isNew: boolean; // Flag to highlight new properties
   purchaseDate?: Date; // Added to track when player bought the property
+  purchasePrice?: number; // Purchase price at time of acquisition
   currentTenant?: Tenant;
   tenantHistory: Tenant[];
   tenantEvents: TenantEvent[];

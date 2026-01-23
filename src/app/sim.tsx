@@ -108,7 +108,9 @@ const deriveUnitCount = (property: Property): number => {
   }
 
   if (
-    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(property.type)
+    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(
+      property.type
+    )
   ) {
     const unitSize = property.type === PropertyType.SKYSCRAPER_CONDO ? 35 : 45;
     return Math.min(50, Math.max(2, Math.floor(property.size / unitSize)));
@@ -158,27 +160,39 @@ const reviveProperty = (property: Property): Property => {
     buildingDate: property.buildingDate
       ? new Date(property.buildingDate)
       : new Date(),
-    listedDate: property.listedDate ? new Date(property.listedDate) : new Date(),
-    purchaseDate: property.purchaseDate ? new Date(property.purchaseDate) : undefined,
+    listedDate: property.listedDate
+      ? new Date(property.listedDate)
+      : new Date(),
+    purchaseDate: property.purchaseDate
+      ? new Date(property.purchaseDate)
+      : undefined,
+    purchasePrice:
+      property.purchasePrice !== undefined
+        ? property.purchasePrice
+        : property.purchaseDate
+          ? property.marketPrice
+          : undefined,
     saleListedDate: property.saleListedDate
       ? new Date(property.saleListedDate)
       : undefined,
     leaseStart: property.leaseStart ? new Date(property.leaseStart) : undefined,
     currentTenant: reviveTenant(property.currentTenant),
-    tenantHistory: (property.tenantHistory || []).map((tenant) =>
-      reviveTenant(tenant) || tenant
+    tenantHistory: (property.tenantHistory || []).map(
+      (tenant) => reviveTenant(tenant) || tenant
     ),
     tenantEvents: (property.tenantEvents || []).map((event) => ({
       ...event,
       date: new Date(event.date)
     })),
-    leaseApplications: (property.leaseApplications || []).map((application) => ({
-      ...application,
-      applicationDate: application.applicationDate
-        ? new Date(application.applicationDate)
-        : new Date(),
-      tenant: reviveTenant(application.tenant) || application.tenant
-    })),
+    leaseApplications: (property.leaseApplications || []).map(
+      (application) => ({
+        ...application,
+        applicationDate: application.applicationDate
+          ? new Date(application.applicationDate)
+          : new Date(),
+        tenant: reviveTenant(application.tenant) || application.tenant
+      })
+    ),
     saleOffers: (property.saleOffers || []).map((offer) => ({
       ...offer,
       date: offer.date ? new Date(offer.date) : new Date()
@@ -293,9 +307,8 @@ const RealEstateSim: React.FC = () => {
     fee: 500, // Monthly fee
     efficiency: 0.85 // 85% efficiency
   });
-  const [aiPlayers, setAiPlayers] = useState<
-    { id: string; name: string; cash: number }[]
-  >(INITIAL_AI_PLAYERS);
+  const [aiPlayers, setAiPlayers] =
+    useState<{ id: string; name: string; cash: number }[]>(INITIAL_AI_PLAYERS);
   const [realEstateAgent, setRealEstateAgent] = useState<{
     hired: boolean;
     commissionRate: number;
@@ -308,7 +321,6 @@ const RealEstateSim: React.FC = () => {
 
   // Events state
   const [events, setEvents] = useState<GameEvent[]>([]);
-  const [activeEvents, setActiveEvents] = useState<GameEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<GameEvent | null>(null);
   const [showEventDetails, setShowEventDetails] = useState<boolean>(false);
 
@@ -342,7 +354,10 @@ const RealEstateSim: React.FC = () => {
     Math.round(
       maxLoanAmount *
         (1 +
-          calculateEventImpact(activeEventsList, EventImpactType.MAX_LOAN_AMOUNT)) *
+          calculateEventImpact(
+            activeEventsList,
+            EventImpactType.MAX_LOAN_AMOUNT
+          )) *
         newBorrowerLoanCapMultiplier
     )
   );
@@ -378,10 +393,10 @@ const RealEstateSim: React.FC = () => {
   useEffect(() => {
     if (!toastMessage) return;
     setNotifications((prev) =>
-      [
-        { message: toastMessage, date: new Date(currentDate) },
-        ...prev
-      ].slice(0, NOTIFICATION_LIMIT)
+      [{ message: toastMessage, date: new Date(currentDate) }, ...prev].slice(
+        0,
+        NOTIFICATION_LIMIT
+      )
     );
   }, [toastMessage, currentDate]);
 
@@ -435,11 +450,17 @@ const RealEstateSim: React.FC = () => {
       };
       aiPlayers?: { id: string; name: string; cash: number }[];
       events?: GameEvent[];
-      rateProtection?: { active: boolean; capRate: number; monthlyCost: number };
+      rateProtection?: {
+        active: boolean;
+        capRate: number;
+        monthlyCost: number;
+      };
       notifications?: { message: string; date: string }[];
     }) => {
       if (parsed.properties) {
-        setProperties(parsed.properties.map((property) => reviveProperty(property)));
+        setProperties(
+          parsed.properties.map((property) => reviveProperty(property))
+        );
       }
       if (parsed.currentDate) setCurrentDate(new Date(parsed.currentDate));
       if (parsed.playerMoney !== undefined) setPlayerMoney(parsed.playerMoney);
@@ -742,9 +763,6 @@ const RealEstateSim: React.FC = () => {
     setTimeout(() => setToastMessage(null), 5000);
   }, []);
 
-  useEffect(() => {
-    setActiveEvents(events.filter((event) => event.isActive));
-  }, [events]);
 
   useEffect(() => {
     if (paused) return;
@@ -893,7 +911,10 @@ const RealEstateSim: React.FC = () => {
           listingImpact.quality + (realEstateAgent.hired ? 0.03 : 0);
         const offerMultiplier = Math.min(
           1.08,
-          Math.max(0.82, 0.9 + Math.random() * 0.15 + qualityBoost - timePenalty)
+          Math.max(
+            0.82,
+            0.9 + Math.random() * 0.15 + qualityBoost - timePenalty
+          )
         );
         const offerAmount = Math.round(anchorPrice * offerMultiplier);
         const newOffer = {
@@ -903,14 +924,13 @@ const RealEstateSim: React.FC = () => {
           date: new Date(date)
         };
 
-        return { ...property, saleOffers: [newOffer, ...existingOffers].slice(0, 5) };
+        return {
+          ...property,
+          saleOffers: [newOffer, ...existingOffers].slice(0, 5)
+        };
       });
     },
-    [
-      getListingKeywordsForProperty,
-      getRandomBuyerName,
-      realEstateAgent
-    ]
+    [getListingKeywordsForProperty, getRandomBuyerName, realEstateAgent]
   );
 
   const applyMarketAdjustments = useCallback(
@@ -937,7 +957,7 @@ const RealEstateSim: React.FC = () => {
         const seasonalMultiplier = property.marketTrends.seasonality || 1;
         const totalRate = monthlyTrend + eventImpact + areaImpact * 0.2;
         const newValue = Math.max(
-          1000,
+          0,
           Math.round(property.value * (1 + totalRate) * seasonalMultiplier)
         );
 
@@ -946,17 +966,14 @@ const RealEstateSim: React.FC = () => {
         let newMarketPrice = Math.round(newValue * marketRatio);
 
         if (property.owner === null && property.timeOnMarket > 30) {
-          const discount = Math.min(
-            0.1,
-            (property.timeOnMarket - 30) * 0.002
-          );
+          const discount = Math.min(0.1, (property.timeOnMarket - 30) * 0.002);
           newMarketPrice = Math.round(newMarketPrice * (1 - discount));
         }
 
         return {
           ...property,
           value: newValue,
-          marketPrice: Math.max(500, newMarketPrice)
+          marketPrice: Math.max(0, newMarketPrice)
         };
       });
     },
@@ -989,6 +1006,7 @@ const RealEstateSim: React.FC = () => {
                 ? {
                     ...property,
                     owner: player.id,
+                    purchasePrice: target.marketPrice,
                     purchaseDate: new Date(currentDate),
                     isRented: false,
                     rentee: null,
@@ -1021,6 +1039,7 @@ const RealEstateSim: React.FC = () => {
                     unitTenants: [],
                     occupiedUnits: 0,
                     purchaseDate: undefined,
+                    purchasePrice: undefined,
                     timeOnMarket: 0,
                     listedDate: new Date(currentDate),
                     isNew: true,
@@ -1117,7 +1136,7 @@ const RealEstateSim: React.FC = () => {
         if (property.development.phase === "permitting") {
           return {
             ...property,
-            development: { phase: "permitted", daysRemaining: 0 }
+            development: { phase: "permitted", daysRemaining: 0 } as const
           };
         }
 
@@ -1140,7 +1159,10 @@ const RealEstateSim: React.FC = () => {
       const completedAddresses: string[] = [];
 
       const updated = currentProperties.map((property) => {
-        if (!property.pendingEvictions || property.pendingEvictions.length === 0) {
+        if (
+          !property.pendingEvictions ||
+          property.pendingEvictions.length === 0
+        ) {
           return property;
         }
 
@@ -1272,7 +1294,10 @@ const RealEstateSim: React.FC = () => {
       setCurrentDate(newDate);
 
       const developmentUpdate = advanceDevelopmentProjects(properties);
-      const evictionUpdate = advanceEvictions(developmentUpdate.updated, newDate);
+      const evictionUpdate = advanceEvictions(
+        developmentUpdate.updated,
+        newDate
+      );
       let updatedProperties = evictionUpdate.updated;
 
       if (developmentUpdate.completedAddresses.length > 0) {
@@ -1307,20 +1332,25 @@ const RealEstateSim: React.FC = () => {
           const updatedTenantEvents = [...property.tenantEvents];
           const remainingTenants: Tenant[] = [];
           const pendingEvictionIds = new Set(
-            (property.pendingEvictions || []).map((eviction) => eviction.tenantId)
+            (property.pendingEvictions || []).map(
+              (eviction) => eviction.tenantId
+            )
           );
 
           existingTenants.forEach((tenant) => {
             const leaseStart = tenant.leaseStart
               ? new Date(tenant.leaseStart)
               : property.leaseStart
-              ? new Date(property.leaseStart)
-              : newDate;
+                ? new Date(property.leaseStart)
+                : newDate;
             const plannedDuration =
               tenant.plannedStayDuration || tenant.leaseLength || 12;
             const monthsElapsed = getMonthsElapsed(leaseStart, newDate);
 
-            if (!pendingEvictionIds.has(tenant.id) && monthsElapsed >= plannedDuration) {
+            if (
+              !pendingEvictionIds.has(tenant.id) &&
+              monthsElapsed >= plannedDuration
+            ) {
               leaseDepartures += 1;
               updatedTenantEvents.push({
                 type: "LEASE_BREAK",
@@ -1503,7 +1533,10 @@ const RealEstateSim: React.FC = () => {
             );
 
             if (!bestApplication) {
-              return { ...updatedPropertyBase, propertyTax: monthlyPropertyTax };
+              return {
+                ...updatedPropertyBase,
+                propertyTax: monthlyPropertyTax
+              };
             }
 
             managerTenantFees += Math.round(property.rentPrice * 0.5);
@@ -1608,8 +1641,9 @@ const RealEstateSim: React.FC = () => {
             property.owner !== null || property.timeOnMarket <= MARKET_MAX_DAYS
         );
 
-        let listingCount = next.filter((property) => property.owner === null)
-          .length;
+        let listingCount = next.filter(
+          (property) => property.owner === null
+        ).length;
         let nextId =
           next.reduce((maxId, property) => Math.max(maxId, property.id), 0) + 1;
 
@@ -1806,7 +1840,9 @@ const RealEstateSim: React.FC = () => {
     );
     const effectiveMaxLoanAmount = Math.max(
       0,
-      Math.round(maxLoanAmount * (1 + maxLoanImpact) * newBorrowerLoanCapMultiplier)
+      Math.round(
+        maxLoanAmount * (1 + maxLoanImpact) * newBorrowerLoanCapMultiplier
+      )
     );
 
     if (amount > effectiveMaxLoanAmount) {
@@ -2032,6 +2068,7 @@ const RealEstateSim: React.FC = () => {
         ...property,
         owner: "Player",
         purchaseDate: new Date(currentDate),
+        purchasePrice: negotiatedPrice,
         marketPrice: negotiatedPrice,
         forSale: false,
         saleListedDate: undefined,
@@ -2066,13 +2103,17 @@ const RealEstateSim: React.FC = () => {
         : 0;
 
       const purchaseDate = property.purchaseDate || new Date();
+      const purchasePrice =
+        property.purchasePrice !== undefined
+          ? property.purchasePrice
+          : property.marketPrice;
       const holdingPeriodMonths = Math.round(
         (currentDate.getTime() - purchaseDate.getTime()) /
           (30 * 24 * 60 * 60 * 1000)
       );
 
       const taxPaid = calculateCapitalGainsTax(
-        property.marketPrice,
+        purchasePrice,
         salePrice,
         holdingPeriodMonths,
         taxRegion
@@ -2083,7 +2124,7 @@ const RealEstateSim: React.FC = () => {
       setRecentCapitalGains((prev) => [
         {
           property: property.address,
-          purchasePrice: property.marketPrice,
+          purchasePrice,
           salePrice,
           holdingPeriodMonths,
           taxPaid
@@ -2096,6 +2137,7 @@ const RealEstateSim: React.FC = () => {
         ...property,
         owner: offer.buyerName,
         purchaseDate: new Date(currentDate),
+        purchasePrice: salePrice,
         forSale: false,
         salePrice: undefined,
         saleListedDate: undefined,
@@ -2112,13 +2154,7 @@ const RealEstateSim: React.FC = () => {
       );
       setTimeout(() => setToastMessage(null), 5000);
     },
-    [
-      properties,
-      currentDate,
-      realEstateAgent,
-      formatCurrency,
-      taxRegion
-    ]
+    [properties, currentDate, realEstateAgent, formatCurrency, taxRegion]
   );
 
   const handleBulldozeProperty = useCallback(
@@ -2142,7 +2178,10 @@ const RealEstateSim: React.FC = () => {
       }
 
       const unitTenants = getUnitTenants(property);
-      if (unitTenants.length > 0 || (property.pendingEvictions || []).length > 0) {
+      if (
+        unitTenants.length > 0 ||
+        (property.pendingEvictions || []).length > 0
+      ) {
         setToastMessage(
           "You must remove all tenants before bulldozing this property."
         );
@@ -2153,16 +2192,14 @@ const RealEstateSim: React.FC = () => {
       const bulldozeCost = calculateBulldozeCost(property);
       if (playerMoney < bulldozeCost) {
         setToastMessage(
-          `You need ${formatCurrency(
-            bulldozeCost
-          )} to bulldoze this property.`
+          `You need ${formatCurrency(bulldozeCost)} to bulldoze this property.`
         );
         setTimeout(() => setToastMessage(null), 5000);
         return;
       }
 
       const landValue = Math.max(
-        1000,
+        0,
         Math.round(
           calculateValue(
             property.size,
@@ -2175,7 +2212,9 @@ const RealEstateSim: React.FC = () => {
           )
         )
       );
-      const landMarketPrice = Math.round(landValue * (0.9 + Math.random() * 0.2));
+      const landMarketPrice = Math.round(
+        landValue * (0.9 + Math.random() * 0.2)
+      );
       const landMaintenance = calculateMaintenanceCost(
         property.location,
         property.size,
@@ -2230,9 +2269,7 @@ const RealEstateSim: React.FC = () => {
     // Check if player has enough money
     if (playerMoney < renovationCost) {
       setToastMessage(
-        `You need ${formatCurrency(
-          renovationCost
-        )} to renovate this property.`
+        `You need ${formatCurrency(renovationCost)} to renovate this property.`
       );
       setTimeout(() => setToastMessage(null), 5000);
       return;
@@ -2289,7 +2326,9 @@ const RealEstateSim: React.FC = () => {
       unitTenants.find((tenant) => tenant.id === tenantId) || unitTenants[0];
     const pendingEvictions = property.pendingEvictions || [];
 
-    if (pendingEvictions.some((eviction) => eviction.tenantId === targetTenant.id)) {
+    if (
+      pendingEvictions.some((eviction) => eviction.tenantId === targetTenant.id)
+    ) {
       setToastMessage("An eviction is already in progress for this tenant.");
       setTimeout(() => setToastMessage(null), 5000);
       return;
@@ -2354,10 +2393,7 @@ const RealEstateSim: React.FC = () => {
       ...application.tenant,
       leaseStart: new Date(currentDate)
     };
-    const updatedTenants = [...unitTenants, acceptedTenant].slice(
-      0,
-      unitCount
-    );
+    const updatedTenants = [...unitTenants, acceptedTenant].slice(0, unitCount);
 
     // Update property with the new tenant
     const updatedProperties = [...properties];
@@ -2466,9 +2502,7 @@ const RealEstateSim: React.FC = () => {
         )
       );
 
-      setToastMessage(
-        `Permit application submitted for ${property.address}.`
-      );
+      setToastMessage(`Permit application submitted for ${property.address}.`);
       setTimeout(() => setToastMessage(null), 5000);
     },
     [properties, playerMoney, formatCurrency]
@@ -2494,9 +2528,7 @@ const RealEstateSim: React.FC = () => {
       const constructionCost = calculateConstructionCost(property);
       if (playerMoney < constructionCost) {
         setToastMessage(
-          `You need ${formatCurrency(
-            constructionCost
-          )} to start construction.`
+          `You need ${formatCurrency(constructionCost)} to start construction.`
         );
         setTimeout(() => setToastMessage(null), 5000);
         return;
@@ -2529,7 +2561,9 @@ const RealEstateSim: React.FC = () => {
       if (!property) return;
 
       if (property.owner !== "Player" || property.type !== PropertyType.LAND) {
-        setToastMessage("Only owned land properties can raise development funds.");
+        setToastMessage(
+          "Only owned land properties can raise development funds."
+        );
         setTimeout(() => setToastMessage(null), 5000);
         return;
       }
@@ -2542,14 +2576,18 @@ const RealEstateSim: React.FC = () => {
 
       const fundingAmount = Math.round(property.value * 0.5);
       if (fundingAmount <= 0) {
-        setToastMessage("This property is not eligible for development funding.");
+        setToastMessage(
+          "This property is not eligible for development funding."
+        );
         setTimeout(() => setToastMessage(null), 5000);
         return;
       }
 
       setPlayerMoney((prev) => prev + fundingAmount);
       setTotalDebt((prev) => prev + fundingAmount);
-      setMonthlyRepayment((prev) => prev + fundingAmount * (baseInterestRate / 12));
+      setMonthlyRepayment(
+        (prev) => prev + fundingAmount * (baseInterestRate / 12)
+      );
 
       setProperties((prev) =>
         prev.map((item) =>
@@ -2569,6 +2607,71 @@ const RealEstateSim: React.FC = () => {
     [properties, baseInterestRate, formatCurrency]
   );
 
+  const handleResetSim = useCallback(() => {
+    setPaused(true);
+    setToastMessage(null);
+    setShowNotifications(false);
+    setNotifications([]);
+    setActiveTab("listings");
+    setProperties(generateRandomProperties(20));
+    setPlayerMoney(250000);
+    setTotalDebt(0);
+    setMonthlyRepayment(0);
+    setBankCreditScore(INITIAL_CREDIT_SCORE);
+    setMaxLoanAmount(INITIAL_MAX_LOAN);
+    setMaxLoanToValueRatio(INITIAL_LOAN_TO_VALUE_RATIO);
+    setPaymentHistory([]);
+    setConsecutivePayments(0);
+    setMissedPayments(0);
+    setBaseInterestRate(0.05);
+    setInterestRateHistory([{ date: new Date(), rate: 0.05 }]);
+    const nextDate = new Date(currentDate);
+    nextDate.setMonth(nextDate.getMonth() + 3);
+    setNextRateChangeDate(nextDate);
+    setMonthlyTaxesPaid({ propertyTax: 0, incomeTax: 0 });
+    setYearlyTaxesPaid(0);
+    setRecentCapitalGains([]);
+    setPropertyWithApplications(null);
+    setShowLeaseApplications(false);
+    setOutsourcedProperties(new Set());
+    setPropertyManager({
+      hired: false,
+      fee: 500,
+      efficiency: 0.85
+    });
+    setAiPlayers(INITIAL_AI_PLAYERS);
+    setRealEstateAgent({
+      hired: false,
+      commissionRate: 0.01,
+      negotiationRate: 0.02
+    });
+    setEvents([]);
+    setSelectedEvent(null);
+    setShowEventDetails(false);
+    setRateProtection({
+      active: false,
+      capRate: 0,
+      monthlyCost: 0
+    });
+
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+      notificationTimerRef.current = null;
+    }
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    try {
+      window.localStorage.clear();
+    } catch {
+      // Ignore storage failures.
+    }
+
+    fetch("/api/state", { method: "DELETE" }).catch(() => undefined);
+  }, [currentDate]);
+
   function handleRepayLoan(amount: number): void {
     // Early repayment fee (2% of remaining balance)
     const earlyRepaymentFee = Math.round(amount * 0.02);
@@ -2576,9 +2679,7 @@ const RealEstateSim: React.FC = () => {
 
     if (playerMoney < totalPayment) {
       setToastMessage(
-        `You need ${formatCurrency(
-          totalPayment
-        )} to repay this loan with fees.`
+        `You need ${formatCurrency(totalPayment)} to repay this loan with fees.`
       );
       setTimeout(() => setToastMessage(null), 5000);
       return;
@@ -2683,7 +2784,7 @@ const RealEstateSim: React.FC = () => {
         </div>
       </div>
 
-      <div className='bg-gray-800 rounded-lg p-3 mb-4 relative z-[80]'>
+      <div className='bg-gray-800 rounded-lg p-3 mb-4 relative'>
         <div className='flex items-center justify-between'>
           <div className='font-semibold'>
             Notifications ({notifications.length})
@@ -2864,7 +2965,7 @@ const RealEstateSim: React.FC = () => {
       </div>
 
       <EventsBanner
-        activeEvents={activeEvents}
+        activeEvents={activeEventsList}
         onEventClick={handleEventClick}
       />
 
@@ -3008,6 +3109,7 @@ const RealEstateSim: React.FC = () => {
             setTickRate={setTickRate}
             paused={paused}
             setPaused={setPaused}
+            onResetSim={handleResetSim}
             propertyManager={propertyManager}
             togglePropertyManager={togglePropertyManager}
             realEstateAgent={realEstateAgent}
