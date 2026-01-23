@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 
+export const dynamic = "force-static";
+export const revalidate = 0;
+
 const STORAGE_DIR = path.join(process.cwd(), "data");
 const STORAGE_PATH = path.join(STORAGE_DIR, "game-state.json");
 
@@ -25,5 +28,14 @@ export async function POST(request: Request) {
       { ok: false, error: "Failed to persist state." },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE() {
+  try {
+    await fs.unlink(STORAGE_PATH);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ ok: false }, { status: 204 });
   }
 }
