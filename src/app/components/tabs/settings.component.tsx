@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Property } from "../../types";
+import { useSettings } from "../../context/settings.context";
 
 interface SettingsProps {
   tickRate: number;
@@ -12,6 +13,12 @@ interface SettingsProps {
     efficiency: number;
   };
   togglePropertyManager: () => void;
+  realEstateAgent: {
+    hired: boolean;
+    commissionRate: number;
+    negotiationRate: number;
+  };
+  toggleRealEstateAgent: () => void;
   outsourcedProperties: Set<number>;
   ownedProperties: Property[];
   toggleOutsourceProperty: (propertyId: number) => void;
@@ -24,11 +31,43 @@ export const Settings = ({
   setPaused,
   propertyManager,
   togglePropertyManager,
+  realEstateAgent,
+  toggleRealEstateAgent,
   outsourcedProperties,
   ownedProperties,
   toggleOutsourceProperty
 }: SettingsProps) => {
   const [showOutsourceSettings, setShowOutsourceSettings] = useState(false);
+  const {
+    locale,
+    currency,
+    taxRegion,
+    setLocale,
+    setCurrency,
+    setTaxRegion,
+    formatCurrency
+  } = useSettings();
+
+  const localeOptions = [
+    { value: "en-US", label: "English (US)" },
+    { value: "en-GB", label: "English (UK)" },
+    { value: "de-DE", label: "Deutsch (DE)" },
+    { value: "fr-FR", label: "Français (FR)" },
+    { value: "ja-JP", label: "日本語 (JP)" }
+  ];
+
+  const currencyOptions = [
+    { value: "USD", label: "USD ($)" },
+    { value: "EUR", label: "EUR (€)" },
+    { value: "GBP", label: "GBP (£)" },
+    { value: "JPY", label: "JPY (¥)" }
+  ];
+
+  const taxRegionOptions = [
+    { value: "US", label: "United States" },
+    { value: "EU", label: "EU Average" },
+    { value: "NORDIC", label: "Nordic Model" }
+  ];
 
   return (
     <div className='bg-gray-800 rounded-lg p-6'>
@@ -100,8 +139,8 @@ export const Settings = ({
                 <h4 className='font-medium'>Property Manager</h4>
                 <p className='text-sm text-gray-400 mt-1'>
                   Hire a property manager to handle tenant issues and find new
-                  tenants for outsourced properties. Monthly fee: $
-                  {propertyManager.fee.toLocaleString()}
+                  tenants for outsourced properties. Monthly fee:{" "}
+                  {formatCurrency(propertyManager.fee)}
                 </p>
               </div>
               <div>
@@ -115,6 +154,34 @@ export const Settings = ({
                   <div className='relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[""] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600'></div>
                   <span className='ml-3 text-sm font-medium'>
                     {propertyManager.hired ? "Hired" : "Not Hired"}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className='bg-gray-700 p-4 rounded mb-4'>
+            <div className='flex justify-between items-center'>
+              <div>
+                <h4 className='font-medium'>Real Estate Agent</h4>
+                <p className='text-sm text-gray-400 mt-1'>
+                  Negotiates better buy/sell prices. Commission:{" "}
+                  {(realEstateAgent.commissionRate * 100).toFixed(1)}%. Typical
+                  discount/premium:{" "}
+                  {(realEstateAgent.negotiationRate * 100).toFixed(1)}%.
+                </p>
+              </div>
+              <div>
+                <label className='inline-flex items-center cursor-pointer'>
+                  <input
+                    type='checkbox'
+                    checked={realEstateAgent.hired}
+                    onChange={toggleRealEstateAgent}
+                    className='sr-only peer'
+                  />
+                  <div className='relative w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-green-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[""] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600'></div>
+                  <span className='ml-3 text-sm font-medium'>
+                    {realEstateAgent.hired ? "Hired" : "Not Hired"}
                   </span>
                 </label>
               </div>
@@ -206,6 +273,68 @@ export const Settings = ({
             </label>
           </div>
         </div>
+
+        {/* Localization & Tax Region */}
+        <div className='border-t border-gray-700 pt-6'>
+          <h3 className='text-lg font-semibold mb-3'>Localization & Taxes</h3>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-400 mb-2'>
+                Locale
+              </label>
+              <select
+                className='bg-gray-700 text-white p-2 rounded w-full'
+                value={locale}
+                onChange={(e) => setLocale(e.target.value)}
+              >
+                {localeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-400 mb-2'>
+                Currency
+              </label>
+              <select
+                className='bg-gray-700 text-white p-2 rounded w-full'
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+              >
+                {currencyOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-400 mb-2'>
+                Tax Region
+              </label>
+              <select
+                className='bg-gray-700 text-white p-2 rounded w-full'
+                value={taxRegion}
+                onChange={(e) =>
+                  setTaxRegion(e.target.value as "US" | "EU" | "NORDIC")
+                }
+              >
+                {taxRegionOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <p className='text-xs text-gray-400 mt-2'>
+            Locale and currency affect formatting. Tax region updates brackets
+            and property tax rates across the game.
+          </p>
+        </div>
+
       </div>
     </div>
   );

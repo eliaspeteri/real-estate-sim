@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Property } from "../../types";
+import { useSettings } from "../../context/settings.context";
 import {
   calculateTotalPropertyTax,
   calculateRentalIncomeTax,
-  PROPERTY_TAX_RATES,
-  INCOME_TAX_BRACKETS,
-  CAPITAL_GAINS_TAX_RATES
+  getTaxConfig
 } from "../../utils/calculateTaxes.util";
 
 interface TaxesProps {
@@ -31,14 +30,18 @@ export const Taxes: React.FC<TaxesProps> = ({
   fiscalYear,
   totalTaxesPaidYTD
 }) => {
+  const { formatCurrency, taxRegion } = useSettings();
   const [simulateSaleProperty, setSimulateSaleProperty] = useState<
     number | null
   >(null);
 
-  const monthlyPropertyTax = calculateTotalPropertyTax(properties);
+  const taxConfig = getTaxConfig(taxRegion);
+  const monthlyPropertyTax = calculateTotalPropertyTax(properties, taxRegion);
   const monthlyIncomeTax = calculateRentalIncomeTax(
     monthlyRentalIncome,
-    monthlyExpenses
+    monthlyExpenses,
+    false,
+    taxRegion
   );
 
   const annualPropertyTax = monthlyPropertyTax * 12;
@@ -49,8 +52,6 @@ export const Taxes: React.FC<TaxesProps> = ({
   );
   const totalAnnualTaxEstimate =
     annualPropertyTax + annualIncomeTax + capitalGainsTaxPaid;
-
-  const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
 
   return (
     <div className='bg-gray-800 rounded-lg p-6'>
@@ -145,7 +146,8 @@ export const Taxes: React.FC<TaxesProps> = ({
                         {formatCurrency(
                           Math.round(
                             (property.value *
-                              PROPERTY_TAX_RATES[property.location]) /
+                              (taxConfig.propertyTaxRates[property.location] ||
+                                taxConfig.defaultPropertyTaxRate)) /
                               12
                           )
                         )}
@@ -172,7 +174,8 @@ export const Taxes: React.FC<TaxesProps> = ({
           <h3 className='text-lg font-medium mb-3'>Property Tax Rates</h3>
           <table className='w-full text-sm'>
             <tbody>
-              {Object.entries(PROPERTY_TAX_RATES).map(([location, rate]) => (
+              {Object.entries(taxConfig.propertyTaxRates).map(
+                ([location, rate]) => (
                 <tr key={location} className='border-b border-gray-600'>
                   <td className='py-1'>{location}</td>
                   <td className='text-right'>{(rate * 100).toFixed(1)}%</td>
@@ -192,13 +195,13 @@ export const Taxes: React.FC<TaxesProps> = ({
               </tr>
             </thead>
             <tbody>
-              {INCOME_TAX_BRACKETS.map((bracket, index) => {
-                const nextBracket = INCOME_TAX_BRACKETS[index + 1];
+              {taxConfig.incomeTaxBrackets.map((bracket, index) => {
+                const nextBracket = taxConfig.incomeTaxBrackets[index + 1];
                 const incomeRange = nextBracket
-                  ? `$${bracket.threshold.toLocaleString()} - $${(
+                  ? `${formatCurrency(bracket.threshold)} - ${formatCurrency(
                       nextBracket.threshold - 1
-                    ).toLocaleString()}`
-                  : `$${bracket.threshold.toLocaleString()}+`;
+                    )}`
+                  : `${formatCurrency(bracket.threshold)}+`;
 
                 return (
                   <tr key={index} className='border-b border-gray-600'>
@@ -220,13 +223,13 @@ export const Taxes: React.FC<TaxesProps> = ({
               <tr className='border-b border-gray-600'>
                 <td className='py-1'>Short-term ({"<"} 1 year)</td>
                 <td className='text-right'>
-                  {(CAPITAL_GAINS_TAX_RATES.SHORT_TERM * 100).toFixed(1)}%
+                  {(taxConfig.capitalGainsRates.SHORT_TERM * 100).toFixed(1)}%
                 </td>
               </tr>
               <tr>
                 <td className='py-1'>Long-term ({"≥"} 1 year)</td>
                 <td className='text-right'>
-                  {(CAPITAL_GAINS_TAX_RATES.LONG_TERM * 100).toFixed(1)}%
+                  {(taxConfig.capitalGainsRates.LONG_TERM * 100).toFixed(1)}%
                 </td>
               </tr>
             </tbody>
@@ -309,8 +312,8 @@ export const Taxes: React.FC<TaxesProps> = ({
                   .filter((p) => p.owner === "Player")
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.address.split(", ")[0]} (Value: $
-                      {p.value.toLocaleString()})
+                      {p.address.split(", ")[0]} (Value:{" "}
+                      {formatCurrency(p.value)})
                     </option>
                   ))}
               </select>

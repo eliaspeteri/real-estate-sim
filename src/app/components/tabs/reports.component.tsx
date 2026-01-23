@@ -1,5 +1,6 @@
 import { Property, Location, PropertyType } from "../../types";
 import React, { useState } from "react";
+import { useSettings } from "../../context/settings.context";
 import {
   calculatePropertyTax,
   calculateRentalIncomeTax
@@ -20,6 +21,14 @@ export const Reports = ({
   playerMoney = 0
 }: ReportsProps) => {
   const [activeSection, setActiveSection] = useState<string>("summary");
+  const { formatCurrency, formatPercent } = useSettings();
+  const getOccupiedUnits = (property: Property) => {
+    const occupiedUnits =
+      property.occupiedUnits ??
+      property.unitTenants?.length ??
+      (property.currentTenant ? 1 : 0);
+    return Math.max(0, occupiedUnits);
+  };
 
   // Calculate total portfolio value
   const portfolioValue = ownedProperties.reduce((sum, p) => sum + p.value, 0);
@@ -27,7 +36,7 @@ export const Reports = ({
   // Calculate monthly rental income
   const monthlyRentalIncome = ownedProperties
     .filter((p) => p.isRented)
-    .reduce((sum, p) => sum + p.rentPrice, 0);
+    .reduce((sum, p) => sum + p.rentPrice * getOccupiedUnits(p), 0);
 
   // Calculate monthly expenses (maintenance costs)
   const monthlyExpenses = ownedProperties.reduce(
@@ -78,22 +87,20 @@ export const Reports = ({
   }, {} as Record<Location, number>);
 
   // Calculate occupancy rate
+  const totalUnits = ownedProperties.reduce(
+    (sum, property) => sum + Math.max(1, property.units ?? 1),
+    0
+  );
+  const occupiedUnits = ownedProperties.reduce(
+    (sum, property) => sum + getOccupiedUnits(property),
+    0
+  );
   const occupancyRate =
-    ownedProperties.length > 0
-      ? (ownedProperties.filter((p) => p.isRented).length /
-          ownedProperties.length) *
-        100
-      : 0;
+    totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
 
   // Calculate debt service coverage ratio
   const dscr =
     monthlyRepayment > 0 ? monthlyRentalIncome / monthlyRepayment : 0;
-
-  // Format as dollar value
-  const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
-
-  // Format as percentage
-  const formatPercent = (value: number) => `${value.toFixed(2)}%`;
 
   const renderSummaryReport = () => (
     <div className='border border-gray-700 p-4 rounded'>
@@ -158,10 +165,12 @@ export const Reports = ({
                 100
               ).toFixed(2);
 
-              const monthlyIncome = property.isRented ? property.rentPrice : 0;
+              const monthlyIncome = property.isRented
+                ? property.rentPrice * getOccupiedUnits(property)
+                : 0;
               const cashFlow = monthlyIncome - property.maintenanceCosts;
               const propCapRate = property.isRented
-                ? ((property.rentPrice * 12) / property.value) * 100
+                ? ((monthlyIncome * 12) / property.value) * 100
                 : 0;
 
               return (
