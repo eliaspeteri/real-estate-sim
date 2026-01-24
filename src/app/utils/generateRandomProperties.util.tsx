@@ -192,7 +192,9 @@ const getRandomSize = (
 
 const getUnitCount = (propertyType: PropertyType, size: number): number => {
   if (
-    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(propertyType)
+    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(
+      propertyType
+    )
   ) {
     const unitSize = propertyType === PropertyType.SKYSCRAPER_CONDO ? 35 : 45;
     return Math.min(50, Math.max(2, Math.floor(size / unitSize)));
@@ -209,10 +211,7 @@ const getIntendedPurpose = (
   propertyType: PropertyType
 ): "Housing" | "Business" | "Mixed" => {
   if (
-    [
-      PropertyType.COMMERCIAL,
-      PropertyType.INDUSTRIAL
-    ].includes(propertyType)
+    [PropertyType.COMMERCIAL, PropertyType.INDUSTRIAL].includes(propertyType)
   ) {
     return "Business";
   }
@@ -811,12 +810,12 @@ export const generateRandomProperty = (
     ((neighborhoodQuality === NeighborhoodQuality.EXCELLENT
       ? 1
       : neighborhoodQuality === NeighborhoodQuality.GOOD
-      ? 0.8
-      : neighborhoodQuality === NeighborhoodQuality.AVERAGE
-      ? 0.6
-      : neighborhoodQuality === NeighborhoodQuality.BELOW_AVERAGE
-      ? 0.4
-      : 0.2) +
+        ? 0.8
+        : neighborhoodQuality === NeighborhoodQuality.AVERAGE
+          ? 0.6
+          : neighborhoodQuality === NeighborhoodQuality.BELOW_AVERAGE
+            ? 0.4
+            : 0.2) +
       ([PropertyType.MANSION, PropertyType.VILLA].includes(type) ? 0.3 : 0) +
       (location === Location.DOWNTOWN ? 0.2 : 0)) /
     1.5; // Normalize to 0-1 range
@@ -863,7 +862,8 @@ export const generateRandomProperty = (
     for (let i = 0; i < targetOccupancy; i += 1) {
       const tenant = generateRandomTenant(rentPrice);
       const startDate = new Date(
-        Date.now() - Math.floor(Math.random() * 18 + 1) * 30 * 24 * 60 * 60 * 1000
+        Date.now() -
+          Math.floor(Math.random() * 18 + 1) * 30 * 24 * 60 * 60 * 1000
       );
       seededTenants.push({
         ...tenant,
