@@ -91,14 +91,13 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
     { key: "securitySystem", label: "Security System" }
   ];
 
-  const PRICE_PER_SQM_BUCKETS: { value: PricePerSqmBucket; label: string }[] =
-    [
-      { value: "lt-1000", label: "Under 1k/m²" },
-      { value: "1000-2000", label: "1k-2k/m²" },
-      { value: "2000-3500", label: "2k-3.5k/m²" },
-      { value: "3500-5000", label: "3.5k-5k/m²" },
-      { value: "gt-5000", label: "5k+/m²" }
-    ];
+  const PRICE_PER_SQM_BUCKETS: { value: PricePerSqmBucket; label: string }[] = [
+    { value: "lt-1000", label: "Under 1k/m²" },
+    { value: "1000-2000", label: "1k-2k/m²" },
+    { value: "2000-3500", label: "2k-3.5k/m²" },
+    { value: "3500-5000", label: "3.5k-5k/m²" },
+    { value: "gt-5000", label: "5k+/m²" }
+  ];
 
   const RENOVATION_TIERS: { value: RenovationTier; label: string }[] = [
     { value: "new", label: "New / Like new" },
@@ -118,8 +117,9 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
   const [selectedPricePerSqmBuckets, setSelectedPricePerSqmBuckets] = useState<
     PricePerSqmBucket[]
   >([]);
-  const [selectedRenovationTier, setSelectedRenovationTier] =
-    useState<RenovationTier | "">("");
+  const [selectedRenovationTier, setSelectedRenovationTier] = useState<
+    RenovationTier | ""
+  >("");
 
   const filterOptions = useMemo(() => {
     const locations = new Set<string>();
@@ -168,7 +168,8 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
         sortOrder?: SortOption;
       };
       if (parsed.priceRange) setPriceRange(parsed.priceRange);
-      if (parsed.selectedLocations) setSelectedLocations(parsed.selectedLocations);
+      if (parsed.selectedLocations)
+        setSelectedLocations(parsed.selectedLocations);
       if (parsed.selectedTypes) setSelectedTypes(parsed.selectedTypes);
       if (parsed.selectedFeatures) setSelectedFeatures(parsed.selectedFeatures);
       if (parsed.selectedPricePerSqmBuckets)
@@ -458,7 +459,9 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
                       <input
                         type='checkbox'
                         className='accent-blue-500'
-                        checked={selectedPricePerSqmBuckets.includes(bucket.value)}
+                        checked={selectedPricePerSqmBuckets.includes(
+                          bucket.value
+                        )}
                         onChange={() =>
                           setSelectedPricePerSqmBuckets((prev) =>
                             prev.includes(bucket.value)
@@ -552,7 +555,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
           </div>
         </div>
       </div>
-
     </>
   );
 };
