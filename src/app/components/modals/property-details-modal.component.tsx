@@ -51,6 +51,8 @@ interface PropertyDetailsModalProps {
   setPaused?: (paused: boolean) => void;
 }
 
+const TENANT_FIND_PRICE = 150; // Cost to find tenants
+
 const LISTING_KEYWORD_OPTIONS: { value: ListingKeyword; label: string }[] = [
   { value: "luxury", label: "Luxury" },
   { value: "modern", label: "Modern" },
@@ -722,7 +724,7 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               >
                 {property.isRented && !hasVacancy
                   ? "End Leases"
-                  : "Find Tenants"}
+                  : `Find Tenants${hasVacancy ? ` (${occupiedUnits}/${unitCount}) (${formatCurrency(TENANT_FIND_PRICE)})` : ""}`}
               </button>
             )}
 
