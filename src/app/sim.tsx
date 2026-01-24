@@ -2084,10 +2084,8 @@ const RealEstateSim: React.FC = () => {
 
     const protectionPaymentInterval = setInterval(() => {
       // Charge monthly fee on the 1st of each month
-      if (
-        playerMoney >= rateProtection.monthlyCost &&
-        currentDate.getDate() === 1
-      ) {
+      if (currentDate.getDate() !== 1) return;
+      if (playerMoney >= rateProtection.monthlyCost) {
         setPlayerMoney((prev) => prev - rateProtection.monthlyCost);
       } else {
         setRateProtection({
