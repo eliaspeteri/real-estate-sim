@@ -363,33 +363,39 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   </>
                 )}
 
-                <span className='text-gray-400'>Built:</span>
-                <span>{formatDate(property.buildingDate)}</span>
-
-                <span className='text-gray-400'>Maintenance:</span>
-                <span>{property.maintenance}</span>
-
-                {property.renovation && (
+                {property.type !== PropertyType.LAND && (
                   <>
-                    <span className='text-gray-400'>Renovation:</span>
-                    <span className='text-yellow-300'>
-                      {property.renovation.daysRemaining} days remaining
-                    </span>
-                  </>
-                )}
+                    <span className='text-gray-400'>Built:</span>
+                    <span>{formatDate(property.buildingDate)}</span>
 
-                <span className='text-gray-400'>Protected:</span>
-                <span>{property.isProtected ? "Yes" : "No"}</span>
+                    <span className='text-gray-400'>Maintenance:</span>
+                    <span>{property.maintenance}</span>
 
-                {isOwnedByPlayer && (
-                  <>
-                    <span className='text-gray-400'>Renovation Level:</span>
-                    <span>{property.renovationBonusPercentage}%</span>
+                    {property.renovation && (
+                      <>
+                        <span className='text-gray-400'>Renovation:</span>
+                        <span className='text-yellow-300'>
+                          {property.renovation.daysRemaining} days remaining
+                        </span>
+                      </>
+                    )}
 
-                    <span className='text-gray-400'>Monthly Maintenance:</span>
-                    <span className='text-red-400'>
-                      {formatCurrency(property.maintenanceCosts)}
-                    </span>
+                    <span className='text-gray-400'>Protected:</span>
+                    <span>{property.isProtected ? "Yes" : "No"}</span>
+
+                    {isOwnedByPlayer && (
+                      <>
+                        <span className='text-gray-400'>Renovation Level:</span>
+                        <span>{property.renovationBonusPercentage}%</span>
+
+                        <span className='text-gray-400'>
+                          Monthly Maintenance:
+                        </span>
+                        <span className='text-red-400'>
+                          {formatCurrency(property.maintenanceCosts)}
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>

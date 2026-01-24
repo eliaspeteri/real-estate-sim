@@ -769,10 +769,10 @@ export const generateRandomProperty = (
   const buildingDate = new Date(
     Date.now() - Math.floor(Math.random() * 100 * 365 * 24 * 60 * 60 * 1000)
   ); // Random date within the last 100 years
-  const renovationBonusPercentage = Math.min(
-    Math.floor(Math.random() * 101),
-    100
-  );
+  const renovationBonusPercentage =
+    type === PropertyType.LAND
+      ? 100
+      : Math.min(Math.floor(Math.random() * 101), 100);
   const maintenance = getMaintenanceStatus(renovationBonusPercentage);
   const size = getRandomSize(location, type);
   const rooms = clampRoomsForSize(type, size, getRandomRooms(location, type));

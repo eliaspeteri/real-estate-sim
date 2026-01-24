@@ -1222,7 +1222,8 @@ const RealEstateSim: React.FC = () => {
         listedDate: new Date(currentDate),
         isNew: false,
         development: undefined,
-        developmentFunding: landProperty.developmentFunding || 0
+        developmentFunding: landProperty.developmentFunding || 0,
+        renovationBonusPercentage: 100
       };
     },
     [currentDate]
