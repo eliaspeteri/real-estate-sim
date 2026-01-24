@@ -25,7 +25,8 @@ import {
   calculateTotalPropertyTax,
   calculateRentalIncomeTax,
   calculateCapitalGainsTax,
-  TaxRegion
+  TaxRegion,
+  Currency
 } from "./utils/calculateTaxes.util";
 import {
   generateLeaseApplications,
@@ -281,7 +282,14 @@ const reviveEvents = (events: GameEvent[]): GameEvent[] => {
 };
 
 const RealEstateSim: React.FC = () => {
-  const { formatCurrency, formatDate, taxRegion } = useSettings();
+  const {
+    formatCurrency,
+    formatDate,
+    taxRegion,
+    setTaxRegion,
+    currency,
+    setCurrency
+  } = useSettings();
   const [properties, setProperties] = useState<Property[]>(initialProperties);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [playerMoney, setPlayerMoney] = useState<number>(250000); // Start with more realistic $250k
@@ -518,6 +526,7 @@ const RealEstateSim: React.FC = () => {
         monthlyCost: number;
       };
       notifications?: { message: string; date: string }[];
+      settings?: { taxRegion: TaxRegion; currency: Currency };
     }) => {
       if (parsed.properties) {
         setProperties(
@@ -583,6 +592,12 @@ const RealEstateSim: React.FC = () => {
           }))
         );
       }
+      if (parsed.settings && parsed.settings.taxRegion) {
+        setTaxRegion(parsed.settings.taxRegion);
+      }
+      if (parsed.settings && parsed.settings.currency) {
+        setCurrency(parsed.settings.currency);
+      }
     };
 
     const loadState = async () => {
@@ -623,7 +638,7 @@ const RealEstateSim: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setCurrency, setTaxRegion]);
 
   useEffect(() => {
     if (!hasLoadedState) return;
@@ -665,7 +680,11 @@ const RealEstateSim: React.FC = () => {
         notifications: notifications.map((note) => ({
           ...note,
           date: note.date.toISOString()
-        }))
+        })),
+        settings: {
+          taxRegion,
+          currency
+        }
       };
       window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
       fetch("/api/state", {
@@ -708,7 +727,9 @@ const RealEstateSim: React.FC = () => {
     aiPlayers,
     events,
     rateProtection,
-    notifications
+    notifications,
+    taxRegion,
+    currency
   ]);
 
   const togglePropertyManager = () => {
