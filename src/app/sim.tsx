@@ -2083,7 +2083,11 @@ const RealEstateSim: React.FC = () => {
     if (paused || !rateProtection.active) return;
 
     const protectionPaymentInterval = setInterval(() => {
-      if (playerMoney >= rateProtection.monthlyCost) {
+      // Charge monthly fee on the 1st of each month
+      if (
+        playerMoney >= rateProtection.monthlyCost &&
+        currentDate.getDate() === 1
+      ) {
         setPlayerMoney((prev) => prev - rateProtection.monthlyCost);
       } else {
         setRateProtection({
@@ -2102,7 +2106,7 @@ const RealEstateSim: React.FC = () => {
     return () => {
       clearInterval(protectionPaymentInterval);
     };
-  }, [paused, rateProtection, playerMoney, tickRate]);
+  }, [paused, rateProtection, playerMoney, tickRate, currentDate]);
 
   function handleLoan(amount: number): void {
     if (amount <= 0) {
