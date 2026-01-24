@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Property } from "../../types";
 import { useSettings } from "../../context/settings.context";
+import { Currency } from "../../utils/calculateTaxes.util";
 
 interface SettingsProps {
   tickRate: number;
@@ -303,7 +304,7 @@ export const Settings = ({
               <select
                 className='bg-gray-700 text-white p-2 rounded w-full'
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => setCurrency(e.target.value as Currency)}
               >
                 {currencyOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -336,7 +337,6 @@ export const Settings = ({
             and property tax rates across the game.
           </p>
         </div>
-
       </div>
     </div>
   );

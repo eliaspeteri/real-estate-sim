@@ -2,6 +2,8 @@ import { Location, Property } from "../types";
 
 export type TaxRegion = "US" | "EU" | "NORDIC";
 
+export type Currency = "USD" | "EUR" | "GBP" | "JPY";
+
 type TaxBracket = { threshold: number; rate: number };
 
 type TaxConfig = {
@@ -91,8 +93,7 @@ export const calculatePropertyTax = (
 ): number => {
   const config = getTaxConfig(taxRegion);
   const annualRate =
-    config.propertyTaxRates[property.location] ||
-    config.defaultPropertyTaxRate;
+    config.propertyTaxRates[property.location] || config.defaultPropertyTaxRate;
   const annualTax = property.value * annualRate;
   return Math.round(annualTax / 12); // Convert to monthly payment
 };

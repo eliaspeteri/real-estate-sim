@@ -1,14 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useState } from "react";
-import type { TaxRegion } from "../utils/calculateTaxes.util";
+import type { Currency, TaxRegion } from "../utils/calculateTaxes.util";
 
 type SettingsContextValue = {
   locale: string;
-  currency: string;
+  currency: Currency;
   taxRegion: TaxRegion;
   setLocale: (locale: string) => void;
-  setCurrency: (currency: string) => void;
+  setCurrency: (currency: Currency) => void;
   setTaxRegion: (taxRegion: TaxRegion) => void;
   formatCurrency: (amount: number) => string;
   formatDate: (date: Date) => string;
@@ -22,7 +22,11 @@ const STORAGE_KEY = "real-estate-sim.settings";
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
-const safeFormatCurrency = (locale: string, currency: string, amount: number) => {
+const safeFormatCurrency = (
+  locale: string,
+  currency: Currency,
+  amount: number
+) => {
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",
@@ -40,7 +44,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children
 }) => {
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
-  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY as Currency);
   const [taxRegion, setTaxRegion] = useState<TaxRegion>(DEFAULT_TAX_REGION);
 
   React.useEffect(() => {
@@ -55,7 +59,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       }>;
 
       if (parsed.locale) setLocale(parsed.locale);
-      if (parsed.currency) setCurrency(parsed.currency);
+      if (parsed.currency) setCurrency(parsed.currency as Currency);
       if (parsed.taxRegion) setTaxRegion(parsed.taxRegion);
     } catch {
       // Ignore malformed storage values.
