@@ -88,10 +88,10 @@ const INITIAL_AI_PLAYERS = [
   { id: "AI-2", name: "Northwind Realty", cash: 500000 }
 ];
 
-const initialProperties = generateRandomProperties(20); // Start with 20 properties
-const MARKET_TARGET_LISTINGS = 20;
-const MARKET_MAX_DAYS = 90;
-const NEW_LISTING_DAYS = 7;
+const MARKET_TARGET_LISTINGS = 200;
+const initialProperties = generateRandomProperties(MARKET_TARGET_LISTINGS); // Start with 20 properties
+const MARKET_MAX_DAYS = 365;
+const NEW_LISTING_DAYS = 30;
 const RENOVATION_STEP_BONUS = 20;
 const RENOVATION_STEP_DAYS = 14;
 const RENOVATION_RENT_WITHHOLDING = 1; // Percentage of rent lost when property is under renovation

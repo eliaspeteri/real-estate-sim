@@ -836,7 +836,7 @@ export const generateRandomProperty = (
 
   const marketPrice = Math.floor(value * (0.9 + Math.random() * 0.2)); // ±10% of actual value
   const owner = null;
-  const timeOnMarket = Math.floor(Math.random() * (90 - 1 + 1)) + 1;
+  const timeOnMarket = Math.floor(Math.random() * (365 - 1 + 1)) + 1;
   const maintenanceCosts = calculateMaintenanceCost(location, size, value);
   const intendedPurpose = getIntendedPurpose(type);
   const isProtected = Math.random() < 0.08;
