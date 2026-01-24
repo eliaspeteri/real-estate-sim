@@ -3312,7 +3312,7 @@ const RealEstateSim: React.FC = () => {
 
       <div className='flex gap-2 my-4 flex-wrap'>
         <button
-          className={`bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded ${
+          className={`bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded cursor-pointer ${
             paused ? "border-2 border-red-500" : ""
           }`}
           onClick={togglePause}
@@ -3320,7 +3320,7 @@ const RealEstateSim: React.FC = () => {
           {paused ? "▶️ Resume" : "⏸️ Pause"}
         </button>
         <button
-          className='bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded'
+          className='bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer'
           onClick={() => {
             setPaused(false);
             setTickRate(TIME_SPEED.SLOW);
@@ -3329,7 +3329,7 @@ const RealEstateSim: React.FC = () => {
           1x
         </button>
         <button
-          className='bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded'
+          className='bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded cursor-pointer'
           onClick={() => {
             setPaused(false);
             setTickRate(TIME_SPEED.NORMAL);
@@ -3338,7 +3338,7 @@ const RealEstateSim: React.FC = () => {
           5x
         </button>
         <button
-          className='bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded'
+          className='bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded cursor-pointer'
           onClick={() => {
             setPaused(false);
             setTickRate(TIME_SPEED.FAST);
