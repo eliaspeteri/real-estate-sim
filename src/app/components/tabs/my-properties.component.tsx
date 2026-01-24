@@ -209,12 +209,12 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
 
   const filteredAndSortedProperties = useMemo(() => {
     const filtered = ownedProperties.filter((property) => {
-      if (
+      /*if (
         property.marketPrice < priceRange[0] ||
         property.marketPrice > priceRange[1]
       ) {
         return false;
-      }
+      }*/
 
       if (
         selectedLocations.length > 0 &&
@@ -289,7 +289,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
     }
   }, [
     ownedProperties,
-    priceRange,
     selectedLocations,
     selectedTypes,
     selectedFeatures,
@@ -330,7 +329,7 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
             </div>
 
             <div className='space-y-4'>
-              <div>
+              {/* <div>
                 <label className='block text-sm font-medium mb-1'>
                   Price Range
                 </label>
@@ -359,7 +358,7 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
                     placeholder='Max price'
                   />
                 </div>
-              </div>
+              </div> */}
 
               <div>
                 <label className='block text-sm font-medium mb-1'>
