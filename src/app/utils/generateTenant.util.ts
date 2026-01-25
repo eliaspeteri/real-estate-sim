@@ -264,8 +264,8 @@ export const generateRandomTenant = (rentPrice: number): Tenant => {
           ? "Excellent"
           : ("Good" as "Excellent" | "Good")
         : Math.random() > 0.5
-        ? "Average"
-        : ("Poor" as "Average" | "Poor"),
+          ? "Average"
+          : ("Poor" as "Average" | "Poor"),
     yearsOfRentalHistory: Math.floor(Math.random() * 10) + 1,
     timesMovedLastFiveYears: Math.floor(Math.random() * 4) + 1
   };
@@ -343,10 +343,6 @@ export const generateLeaseApplications = (
   tenantQualityModifier: number = 0,
   listingKeywords: ListingKeyword[] = []
 ): LeaseApplication[] => {
-  console.log(
-    `Generating ${count} lease applications for rent price $${rentalPrice}`
-  );
-
   if (!rentalPrice || rentalPrice <= 0) {
     console.error(
       "Invalid rent price provided to generateLeaseApplications:",
@@ -404,6 +400,5 @@ export const generateLeaseApplications = (
     });
   }
 
-  console.log(`Generated ${applications.length} applications successfully`);
   return applications;
 };
