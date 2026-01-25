@@ -51,7 +51,7 @@ interface PropertyDetailsModalProps {
   setPaused?: (paused: boolean) => void;
 }
 
-const TENANT_FIND_PRICE = 150; // Cost to find tenants
+const TENANT_FIND_PRICE = 0; // Cost to find tenants
 
 const LISTING_KEYWORD_OPTIONS: { value: ListingKeyword; label: string }[] = [
   { value: "luxury", label: "Luxury" },
