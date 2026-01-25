@@ -21,7 +21,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   currentDate,
   setPaused
 }) => {
-  const [isClosing, setIsClosing] = useState(false);
+  const [isClosing] = useState(false);
   const { formatCurrency } = useSettings();
 
   useEffect(() => {
@@ -36,12 +36,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   }, [isOpen, setPaused]);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-      setIsClosing(false);
-      setPaused(false);
-    }, 300);
+    onClose();
+    setPaused(false);
   };
 
   if (!isOpen) return null;
