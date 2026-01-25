@@ -271,10 +271,9 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
     const percentageGain = (valueGain / purchasePrice) * 100;
 
     const purchaseDate = new Date(property.purchaseDate);
-    const currentDate = new Date();
     const monthsHeld =
-      (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 +
-      (currentDate.getMonth() - purchaseDate.getMonth());
+      (currentDate!.getFullYear() - purchaseDate.getFullYear()) * 12 +
+      (currentDate!.getMonth() - purchaseDate.getMonth());
 
     // Annualized ROI formula = ((1 + totalROI)^(1/years) - 1) * 100
     const years = monthsHeld / 12;
@@ -442,6 +441,11 @@ const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                           }
                         >
                           {roi.annualizedROI.toFixed(2)}%
+                        </span>
+
+                        <span className='text-gray-400'>Purchase date:</span>
+                        <span>
+                          {property.purchaseDate?.toLocaleDateString()}
                         </span>
 
                         <span className='text-gray-400'>Holding Period:</span>
