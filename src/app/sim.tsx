@@ -807,6 +807,7 @@ const RealEstateSim: React.FC = () => {
         setEvents(result.events);
         setPlayerMoney((prev) => prev + result.moneyChange);
         setToastMessage(result.message);
+        setShowEventDetails(false);
         setTimeout(() => setToastMessage(null), 5000);
       } else {
         setToastMessage(result.message);
