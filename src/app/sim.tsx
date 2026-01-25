@@ -31,10 +31,8 @@ import {
 import {
   generateLeaseApplications,
   calculateTenantEventProbability,
-  calculateListingImpact,
-  extractListingKeywords
+  calculateListingImpact
 } from "./utils/generateTenant.util";
-import { calculateRent } from "./utils/calculateRent.util";
 import { calculateRenovationCost } from "./utils/calculateRenovationCost.util";
 import { calculateBulldozeCost } from "./utils/bulldoze.util";
 import { calculateValue } from "./utils/calculateValue.util";
@@ -60,6 +58,14 @@ import {
 import EventsBanner from "./components/events/events-banner.component";
 import EventDetailsModal from "./components/modals/event-details-modal.component";
 import { useSettings } from "./context/settings.context";
+import {
+  findNewTenantsWithPropertyManager,
+  PropertyManager,
+  selectBestApplication as propertyManagerSelectsBestApplication
+} from "./utils/propertyManager.util";
+import { listingAdCost, propertyListingKeywords } from "./utils/listings.util";
+import { calculateRentPriceImpact as rentPriceImpact } from "./utils/rent.util";
+import { deriveUnitCount } from "./utils/units.util";
 
 // Define tab types
 type TabType =
@@ -110,27 +116,6 @@ const reviveTenant = (tenant?: Tenant | null): Tenant | undefined => {
     ...tenant,
     leaseStart: tenant.leaseStart ? new Date(tenant.leaseStart) : undefined
   };
-};
-
-const deriveUnitCount = (property: Property): number => {
-  if (property.units && property.units > 0) {
-    return property.units;
-  }
-
-  if (
-    [PropertyType.APARTMENT, PropertyType.SKYSCRAPER_CONDO].includes(
-      property.type
-    )
-  ) {
-    const unitSize = property.type === PropertyType.SKYSCRAPER_CONDO ? 35 : 45;
-    return Math.min(50, Math.max(2, Math.floor(property.size / unitSize)));
-  }
-
-  if (property.type === PropertyType.MIXED_USE) {
-    return Math.min(20, Math.max(2, Math.floor(property.size / 60)));
-  }
-
-  return 1;
 };
 
 const getUnitTenants = (property: Property): Tenant[] => {
@@ -364,14 +349,12 @@ const RealEstateSim: React.FC = () => {
   const [outsourcedProperties, setOutsourcedProperties] = useState<Set<number>>(
     new Set()
   );
-  const [propertyManager, setPropertyManager] = useState<{
-    hired: boolean;
-    fee: number;
-    efficiency: number;
-  }>({
+  const [propertyManager, setPropertyManager] = useState<PropertyManager>({
     hired: false,
     fee: 500, // Monthly fee
-    efficiency: 0.85 // 85% efficiency
+    efficiency: 0.85, // 85% efficiency
+    listingFees: 0,
+    tenantFees: 0
   });
   const [aiPlayers, setAiPlayers] =
     useState<{ id: string; name: string; cash: number }[]>(INITIAL_AI_PLAYERS);
@@ -793,11 +776,8 @@ const RealEstateSim: React.FC = () => {
   );
 
   const calculateListingAdCost = useCallback(
-    (property: Property, vacancies: number) => {
-      const base = 150;
-      const perUnit = Math.round(property.rentPrice * 0.08);
-      return Math.max(base, perUnit * Math.max(1, vacancies));
-    },
+    (property: Property, vacancies: number) =>
+      listingAdCost({ property, vacancies }),
     []
   );
 
@@ -947,52 +927,20 @@ const RealEstateSim: React.FC = () => {
   }, [paused, currentDate, tickRate, properties]);
 
   const selectBestApplication = useCallback(
-    (applications: LeaseApplication[], rentPrice: number) => {
-      if (applications.length === 0) return null;
-
-      return applications.reduce((best, current) => {
-        const bestScore =
-          best.tenant.creditScore +
-          (rentPrice > 0 ? (best.tenant.monthlyIncome / rentPrice) * 100 : 0);
-        const currentScore =
-          current.tenant.creditScore +
-          (rentPrice > 0
-            ? (current.tenant.monthlyIncome / rentPrice) * 100
-            : 0);
-
-        return currentScore > bestScore ? current : best;
-      }, applications[0]);
-    },
+    (applications: LeaseApplication[], rentPrice: number) =>
+      propertyManagerSelectsBestApplication(applications, rentPrice),
     []
   );
 
-  const getListingKeywordsForProperty = useCallback((property: Property) => {
-    const copyKeywords = extractListingKeywords(property.listingCopy || "");
-    return Array.from(
-      new Set([...(property.listingKeywords || []), ...copyKeywords])
-    );
-  }, []);
+  const getListingKeywordsForProperty = useCallback(
+    (property: Property) => propertyListingKeywords({ property }),
+    []
+  );
 
-  const calculateRentPriceImpact = useCallback((property: Property) => {
-    const unitCount = deriveUnitCount(property);
-    const marketRent = calculateRent(
-      property.location,
-      unitCount > 0 ? property.size / unitCount : property.size,
-      property.renovationBonusPercentage / 100
-    );
-    if (!marketRent || marketRent <= 0) {
-      return { count: 0, quality: 0, marketRent: 0 };
-    }
-
-    const ratio = property.rentPrice / marketRent;
-    if (ratio <= 0.5) return { count: 1.0, quality: -0.12, marketRent };
-    if (ratio <= 0.7) return { count: 0.6, quality: -0.07, marketRent };
-    if (ratio <= 0.9) return { count: 0.25, quality: -0.03, marketRent };
-    if (ratio <= 1.1) return { count: 0, quality: 0, marketRent };
-    if (ratio <= 1.25) return { count: -0.2, quality: 0.02, marketRent };
-    if (ratio <= 1.75) return { count: -0.5, quality: 0.05, marketRent };
-    return { count: -0.8, quality: 0.08, marketRent };
-  }, []);
+  const calculateRentPriceImpact = useCallback(
+    (property: Property) => rentPriceImpact({ property }),
+    []
+  );
 
   const getRandomBuyerName = useCallback(() => {
     const first = [
@@ -1532,9 +1480,7 @@ const RealEstateSim: React.FC = () => {
         let totalRentalIncome = 0;
         let totalPropertyTax = 0;
         let totalMaintenanceCosts = 0;
-        let managerTenantFees = 0;
-        let managerListingFees = 0;
-        let managerTenantsFound = 0;
+        const managerTenantsFound = 0;
         let leaseDepartures = 0;
         const ownedCount = updatedProperties.filter(
           (property) => property.owner === "Player"
@@ -1546,10 +1492,6 @@ const RealEstateSim: React.FC = () => {
         const portfolioTaxMultiplier = Math.min(
           1.4,
           Math.max(1, 1 + Math.max(0, ownedCount - 3) * 0.04)
-        );
-        const portfolioPenalty = Math.min(
-          0.25,
-          Math.max(0, (ownedCount - 3) * 0.03)
         );
 
         updatedProperties = updatedProperties.map((property) => {
@@ -1639,8 +1581,12 @@ const RealEstateSim: React.FC = () => {
             rentee: remainingTenants[0]?.name ?? null
           };
 
+          const unitCount = deriveUnitCount(property);
+          const unitTenants = remainingTenants;
+          const occupiedUnits = unitTenants.length;
+          const vacancies = Math.max(0, unitCount - occupiedUnits);
           // Handle rental income for rented properties
-          if (updatedPropertyBase.isRented) {
+          if (updatedPropertyBase.isRented && vacancies === 0) {
             const unitTenants = remainingTenants;
             if (unitTenants.length === 0) {
               return {
@@ -1741,111 +1687,23 @@ const RealEstateSim: React.FC = () => {
             };
           }
 
-          const unitCount = deriveUnitCount(property);
-          const unitTenants = remainingTenants;
-          const occupiedUnits = unitTenants.length;
-          const vacancies = Math.max(0, unitCount - occupiedUnits);
-
-          if (
+          // Property manager will try to find tenants for vacant units
+          const propertyManagerCanFindTenants =
             vacancies > 0 &&
             propertyManager.hired &&
-            outsourcedProperties.has(property.id) &&
-            property.type !== PropertyType.LAND
-          ) {
-            const tenantQualityImpact = calculateEventImpact(
-              events.filter((e) => e.isActive),
-              EventImpactType.TENANT_QUALITY,
-              property.location,
-              property.type
-            );
-            const areaImpact = calculateEventImpact(
-              events.filter((e) => e.isActive),
-              EventImpactType.AREA_QUALITY,
-              property.location,
-              property.type
-            );
-            const listingKeywords = getListingKeywordsForProperty(property);
-            const listingImpact = calculateListingImpact(listingKeywords);
-            const rentPriceImpact = calculateRentPriceImpact(property);
+            outsourcedProperties.has(property.id);
 
-            const baseApplicationCount =
-              (4 + Math.floor(Math.random() * 5)) * Math.max(1, vacancies);
-            const applicantMultiplier =
-              1 +
-              tenantQualityImpact +
-              areaImpact +
-              listingImpact.count +
-              rentPriceImpact.count -
-              portfolioPenalty +
-              propertyManager.efficiency * 0.05;
-            const rawApplicationCount = Math.max(
-              0,
-              Math.round(baseApplicationCount * applicantMultiplier)
-            );
-            const rentRatio =
-              rentPriceImpact.marketRent > 0
-                ? property.rentPrice / rentPriceImpact.marketRent
-                : 1;
-            const ratioPenalty = Math.min(
-              0.9,
-              Math.max(0, (rentRatio - 1) * 0.12)
-            );
-            const applicationProbability = Math.min(
-              0.9,
-              Math.max(0, 0.65 + applicantMultiplier * 0.2 - ratioPenalty)
-            );
-            const adjustedApplicationCount =
-              Math.random() < applicationProbability ? rawApplicationCount : 0;
-
-            if (adjustedApplicationCount > 0) {
-              managerListingFees += calculateListingAdCost(property, vacancies);
-            }
-
-            const applications = generateLeaseApplications(
-              property.rentPrice,
-              adjustedApplicationCount,
-              tenantQualityImpact +
-                areaImpact +
-                listingImpact.quality +
-                rentPriceImpact.quality,
-              listingKeywords
-            );
-            const bestApplication = selectBestApplication(
-              applications,
-              property.rentPrice
-            );
-
-            if (!bestApplication) {
-              return {
-                ...updatedPropertyBase,
-                propertyTax: scaledPropertyTax
-              };
-            }
-
-            managerTenantFees += Math.round(property.rentPrice * 0.5);
-            managerTenantsFound += 1;
-
-            const acceptedTenant = {
-              ...bestApplication.tenant,
-              leaseStart: new Date(newDate)
-            };
-            const updatedTenants = [...unitTenants, acceptedTenant].slice(
-              0,
-              unitCount
-            );
-
-            return {
-              ...updatedPropertyBase,
-              unitTenants: updatedTenants,
-              occupiedUnits: updatedTenants.length,
-              isRented: updatedTenants.length > 0,
-              rentee: updatedTenants[0]?.name ?? null,
-              currentTenant: updatedTenants[0],
-              leaseStart: new Date(newDate),
-              leaseLength: bestApplication.desiredLeaseLength,
-              leaseApplications: [],
-              propertyTax: scaledPropertyTax
-            };
+          if (propertyManagerCanFindTenants) {
+            return findNewTenantsWithPropertyManager({
+              events,
+              property,
+              propertyManager,
+              unitTenants,
+              ownedCount,
+              propertyTax: scaledPropertyTax,
+              newDate,
+              updatedPropertyBase
+            });
           }
 
           return { ...updatedPropertyBase, propertyTax: scaledPropertyTax };
@@ -1864,8 +1722,8 @@ const RealEstateSim: React.FC = () => {
           totalPropertyTax -
           rentalIncomeTax -
           totalMaintenanceCosts -
-          managerTenantFees -
-          managerListingFees -
+          (propertyManager.listingFees || 0) -
+          (propertyManager.tenantFees || 0) -
           (propertyManager.hired ? propertyManager.fee : 0);
 
         if (totalDebt > 0 && monthlyRepayment > 0) {
