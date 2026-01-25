@@ -4,7 +4,8 @@ import { useSettings } from "../../context/settings.context";
 import {
   calculateTotalPropertyTax,
   calculateRentalIncomeTax,
-  getTaxConfig
+  getTaxConfig,
+  calculatePropertyTax
 } from "../../utils/calculateTaxes.util";
 
 interface TaxesProps {
@@ -144,12 +145,7 @@ export const Taxes: React.FC<TaxesProps> = ({
                       <td>{formatCurrency(property.value)}</td>
                       <td className='text-red-300'>
                         {formatCurrency(
-                          Math.round(
-                            (property.value *
-                              (taxConfig.propertyTaxRates[property.location] ||
-                                taxConfig.defaultPropertyTaxRate)) /
-                              12
-                          )
+                          calculatePropertyTax(property, taxRegion)
                         )}
                       </td>
                     </tr>
@@ -176,11 +172,12 @@ export const Taxes: React.FC<TaxesProps> = ({
             <tbody>
               {Object.entries(taxConfig.propertyTaxRates).map(
                 ([location, rate]) => (
-                <tr key={location} className='border-b border-gray-600'>
-                  <td className='py-1'>{location}</td>
-                  <td className='text-right'>{(rate * 100).toFixed(1)}%</td>
-                </tr>
-              ))}
+                  <tr key={location} className='border-b border-gray-600'>
+                    <td className='py-1'>{location}</td>
+                    <td className='text-right'>{(rate * 100).toFixed(1)}%</td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
