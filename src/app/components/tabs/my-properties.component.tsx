@@ -108,7 +108,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
 
   const [sortOrder, setSortOrder] = useState<SortOption>("default");
   const [showFilters] = useState<boolean>(true);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<PropertyType[]>([]);
   const [selectedFeatures, setSelectedFeatures] = useState<
@@ -145,7 +144,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
   }, [ownedProperties]);
 
   const resetFilters = () => {
-    setPriceRange(filterOptions.priceRange);
     setSelectedLocations([]);
     setSelectedTypes([]);
     setSelectedFeatures([]);
@@ -167,7 +165,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
         selectedRenovationTier?: RenovationTier | "";
         sortOrder?: SortOption;
       };
-      if (parsed.priceRange) setPriceRange(parsed.priceRange);
       if (parsed.selectedLocations)
         setSelectedLocations(parsed.selectedLocations);
       if (parsed.selectedTypes) setSelectedTypes(parsed.selectedTypes);
@@ -183,13 +180,7 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
   }, []);
 
   useEffect(() => {
-    const [min, max] = filterOptions.priceRange;
-    setPriceRange((prev) => [Math.max(min, prev[0]), Math.min(max, prev[1])]);
-  }, [filterOptions.priceRange]);
-
-  useEffect(() => {
     const payload = {
-      priceRange,
       selectedLocations,
       selectedTypes,
       selectedFeatures,
@@ -199,7 +190,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
     };
     window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(payload));
   }, [
-    priceRange,
     selectedLocations,
     selectedTypes,
     selectedFeatures,
@@ -210,13 +200,6 @@ export const MyProperties: React.FC<MyPropertiesProps> = ({
 
   const filteredAndSortedProperties = useMemo(() => {
     const filtered = ownedProperties.filter((property) => {
-      /*if (
-        property.marketPrice < priceRange[0] ||
-        property.marketPrice > priceRange[1]
-      ) {
-        return false;
-      }*/
-
       if (
         selectedLocations.length > 0 &&
         !selectedLocations.includes(property.location)
