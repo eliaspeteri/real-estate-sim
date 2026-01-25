@@ -1017,13 +1017,20 @@ const RealEstateSim: React.FC = () => {
             0.9 + Math.random() * 0.15 + qualityBoost - timePenalty
           )
         );
+        const buyerName = getRandomBuyerName();
         const offerAmount = Math.round(anchorPrice * offerMultiplier);
         const newOffer = {
           id: `offer-${Date.now()}-${Math.round(Math.random() * 100000)}`,
-          buyerName: getRandomBuyerName(),
+          buyerName,
           amount: offerAmount,
           date: new Date(date)
         };
+
+        setToastMessage(
+          `${buyerName} offered ${offerAmount} for ${property.address}.`
+        );
+
+        setTimeout(() => setToastMessage(null), 5000);
 
         return {
           ...property,
