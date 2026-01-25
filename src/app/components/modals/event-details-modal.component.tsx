@@ -9,6 +9,7 @@ interface EventDetailsModalProps {
   onMakeChoice: (eventId: string, choiceId: string) => void;
   playerMoney: number;
   currentDate: Date;
+  setPaused: (paused: boolean) => void;
 }
 
 const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
@@ -17,7 +18,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   onClose,
   onMakeChoice,
   playerMoney,
-  currentDate
+  currentDate,
+  setPaused
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const { formatCurrency } = useSettings();
@@ -25,18 +27,20 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      setPaused(true);
     }
 
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen]);
+  }, [isOpen, setPaused]);
 
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
       onClose();
       setIsClosing(false);
+      setPaused(false);
     }, 300);
   };
 

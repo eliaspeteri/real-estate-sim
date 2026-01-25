@@ -3342,6 +3342,7 @@ const RealEstateSim: React.FC = () => {
           onMakeChoice={handleEventChoice}
           playerMoney={playerMoney}
           currentDate={currentDateRef.current}
+          setPaused={setPaused}
         />
       )}
 
