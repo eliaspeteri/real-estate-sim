@@ -8,6 +8,7 @@ interface EventDetailsModalProps {
   onClose: () => void;
   onMakeChoice: (eventId: string, choiceId: string) => void;
   playerMoney: number;
+  currentDate: Date;
 }
 
 const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
@@ -15,7 +16,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   isOpen,
   onClose,
   onMakeChoice,
-  playerMoney
+  playerMoney,
+  currentDate
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const { formatCurrency } = useSettings();
@@ -47,9 +49,13 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   const endDate = event.endDate ? new Date(event.endDate) : null;
   const daysRemaining = endDate
     ? Math.ceil(
-        (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        (endDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
       )
     : null;
+
+  if (daysRemaining !== null && daysRemaining <= 0) {
+    handleClose();
+  }
 
   const formatImpact = (value: number) => {
     const sign = value >= 0 ? "+" : "";

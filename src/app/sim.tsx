@@ -289,8 +289,9 @@ const RealEstateSim: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TabType>("listings");
   const [hasLoadedState, setHasLoadedState] = useState<boolean>(false);
+  const propertiesRef = useRef<Property[]>(properties);
   const currentDateRef = useRef<Date>(currentDate);
-  const lastEventCheckRef = useRef<string | null>(null);
+  const lastEventCheckRef = useRef<Date | null>(null);
   const notificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -863,20 +864,31 @@ const RealEstateSim: React.FC = () => {
     setTimeout(() => setToastMessage(null), 5000);
   }, []);
 
+  // Event checking interval
   useEffect(() => {
     if (paused) return;
 
     const eventInterval = setInterval(() => {
+      if (lastEventCheckRef.current === null) {
+        lastEventCheckRef.current = currentDateRef.current;
+      }
+      const shouldCheckEvents =
+        lastEventCheckRef.current < currentDateRef.current;
+
+      if (!shouldCheckEvents) {
+        return;
+      }
+
       setEvents((prevEvents) => {
-        const updatedEvents = updateActiveEvents(prevEvents, currentDate);
+        const updatedEvents = updateActiveEvents(
+          prevEvents,
+          currentDateRef.current
+        );
         let newEvents: GameEvent[] = [];
         let relatedEvents: GameEvent[] = [];
-        const monthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
-        const shouldCheckEvents =
-          currentDate.getDate() === 1 && lastEventCheckRef.current !== monthKey;
 
         if (shouldCheckEvents) {
-          const ownedCount = properties.filter(
+          const ownedCount = propertiesRef.current.filter(
             (property) => property.owner === "Player"
           ).length;
           const portfolioEventMultiplier = Math.min(
@@ -885,14 +897,14 @@ const RealEstateSim: React.FC = () => {
           );
           newEvents = checkForNewEvents(
             updatedEvents,
-            currentDate,
+            currentDateRef.current,
             portfolioEventMultiplier
           );
           relatedEvents = checkForRelatedEvents(
             [...updatedEvents, ...newEvents],
-            currentDate
+            currentDateRef.current
           );
-          lastEventCheckRef.current = monthKey;
+          lastEventCheckRef.current = currentDateRef.current;
         }
 
         if (newEvents.length > 0 || relatedEvents.length > 0) {
@@ -924,7 +936,7 @@ const RealEstateSim: React.FC = () => {
     return () => {
       clearInterval(eventInterval);
     };
-  }, [paused, currentDate, tickRate, properties]);
+  }, [paused, currentDateRef, tickRate, propertiesRef]);
 
   const selectBestApplication = useCallback(
     (applications: LeaseApplication[], rentPrice: number) =>
@@ -3328,6 +3340,7 @@ const RealEstateSim: React.FC = () => {
           onClose={() => setShowEventDetails(false)}
           onMakeChoice={handleEventChoice}
           playerMoney={playerMoney}
+          currentDate={currentDateRef.current}
         />
       )}
 

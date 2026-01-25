@@ -218,7 +218,8 @@ const hasContradictingEvents = (
   // Define contradicting event pairs
   const contradictions: { [key: string]: string[] } = {
     "economic-boom": ["recession"],
-    recession: ["economic-boom"]
+    recession: ["economic-boom", "local-business-growth"],
+    "local-business-growth": ["recession"]
   };
 
   // Get contradictions for this event
