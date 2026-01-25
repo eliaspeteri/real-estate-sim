@@ -587,7 +587,7 @@ const RealEstateSim: React.FC = () => {
     const loadState = async () => {
       let loaded = false;
 
-      try {
+      /*try {
         const response = await fetch("/api/state", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
@@ -598,7 +598,7 @@ const RealEstateSim: React.FC = () => {
         }
       } catch {
         // Ignore backend load errors and fall back to local storage.
-      }
+      }*/
 
       if (!loaded) {
         const stored = window.localStorage.getItem(STATE_STORAGE_KEY);
@@ -610,6 +610,7 @@ const RealEstateSim: React.FC = () => {
             // Ignore malformed stored state.
           }
         }
+        loaded = true;
       }
 
       if (!cancelled) {
@@ -671,14 +672,14 @@ const RealEstateSim: React.FC = () => {
         }
       };
       window.localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
-      fetch("/api/state", {
+      /*fetch("/api/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       }).catch(() => {
         // Ignore backend persistence errors; local storage is the fallback.
-      });
-    }, 500);
+      });*/
+    }, 5000);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
