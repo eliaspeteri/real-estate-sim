@@ -173,8 +173,8 @@ const calculatePortfolioNetIncome = (
     (sum, property) => sum + property.maintenanceCosts,
     0
   );
-  const propertyTax = calculateTotalPropertyTax(owned, taxRegion);
-  return rentalIncome - maintenance - propertyTax - managerFee;
+  //const propertyTax = calculateTotalPropertyTax(owned, taxRegion);
+  return rentalIncome - maintenance - /* propertyTax */ -managerFee;
 };
 
 const applyUnitState = (property: Property, unitTenants: Tenant[]) => {
