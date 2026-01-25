@@ -2197,7 +2197,7 @@ const RealEstateSim: React.FC = () => {
         Math.random() < applicationProbability ? rawApplicationCount : 0;
 
       if (adjustedApplicationCount > 0) {
-        const listingFee = calculateListingAdCost(property, vacancies || 1);
+        /*const listingFee = calculateListingAdCost(property, vacancies || 1);
         if (playerMoney < listingFee) {
           setToastMessage(
             `You need ${formatCurrency(listingFee)} to list this rental.`
@@ -2205,7 +2205,7 @@ const RealEstateSim: React.FC = () => {
           setTimeout(() => setToastMessage(null), 5000);
           return;
         }
-        setPlayerMoney((prev) => prev - listingFee);
+        setPlayerMoney((prev) => prev - listingFee);*/
       }
 
       const applications = generateLeaseApplications(
@@ -2271,13 +2271,13 @@ const RealEstateSim: React.FC = () => {
       );
       const listingFee = Math.max(500, Math.round(salePrice * 0.01));
 
-      if (playerMoney < listingFee) {
+      /*if (playerMoney < listingFee) {
         setToastMessage(
           `You need ${formatCurrency(listingFee)} to list this property.`
         );
         setTimeout(() => setToastMessage(null), 5000);
         return;
-      }
+      }*/
 
       const updatedProperties = [...properties];
       updatedProperties[propertyIndex] = {
