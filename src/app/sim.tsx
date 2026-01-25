@@ -2404,6 +2404,7 @@ const RealEstateSim: React.FC = () => {
         )}${agentFee > 0 ? ` (Agent fee ${formatCurrency(agentFee)})` : ""}`
       );
       setTimeout(() => setToastMessage(null), 5000);
+      setPaused(false);
     },
     [properties, currentDate, realEstateAgent, formatCurrency, taxRegion]
   );
