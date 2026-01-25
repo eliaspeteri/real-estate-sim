@@ -1640,13 +1640,16 @@ const RealEstateSim: React.FC = () => {
 
             let payingUnits = 0;
 
+            const tenantCount = unitTenants.length;
+            const rentPerTenant = Math.round(property.rentPrice / tenantCount);
+
             unitTenants.forEach((tenant) => {
               if (pendingEvictionIds.has(tenant.id)) {
                 tenantEvents.push({
                   type: "RENT_MISSED",
                   date: new Date(newDate),
                   description: "Eviction in progress - rent unpaid",
-                  financialImpact: -property.rentPrice
+                  financialImpact: -rentPerTenant
                 });
                 return;
               }
@@ -1661,14 +1664,14 @@ const RealEstateSim: React.FC = () => {
                   type: "RENT_PAID",
                   date: new Date(newDate),
                   description: "Rent paid on time",
-                  financialImpact: property.rentPrice
+                  financialImpact: rentPerTenant
                 });
               } else {
                 tenantEvents.push({
                   type: "RENT_MISSED",
                   date: new Date(newDate),
                   description: "Rent payment missed",
-                  financialImpact: -property.rentPrice
+                  financialImpact: -rentPerTenant
                 });
               }
             });
