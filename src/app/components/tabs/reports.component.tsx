@@ -185,7 +185,10 @@ export const Reports = ({
               const monthlyIncome = property.isRented
                 ? property.rentPrice * getOccupiedUnits(property)
                 : 0;
-              const cashFlow = monthlyIncome - property.maintenanceCosts;
+              const cashFlow =
+                monthlyIncome -
+                property.maintenanceCosts -
+                property.propertyTax;
               const propCapRate = property.isRented
                 ? ((monthlyIncome * 12) / property.value) * 100
                 : 0;
@@ -211,7 +214,7 @@ export const Reports = ({
                     {formatCurrency(property.maintenanceCosts)}
                   </td>
                   <td className='px-4 py-2 text-red-400'>
-                    {formatCurrency(property.propertyTax)}
+                    {formatCurrency(calculatePropertyTax(property, taxRegion))}
                   </td>
                   <td
                     className={`px-4 py-2 ${
