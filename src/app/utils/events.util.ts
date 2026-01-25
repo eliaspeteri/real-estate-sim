@@ -5,7 +5,8 @@ import {
   EventCategory,
   EventImpactType,
   PropertyType,
-  Location
+  Location,
+  EventChoice
 } from "../types";
 
 // Predefined events library
@@ -212,7 +213,7 @@ export const checkForNewEvents = (
 
 // Helper function to check if there are contradicting events
 const hasContradictingEvents = (
-  eventId: string,
+  eventId: GameEvent["id"],
   currentEvents: GameEvent[]
 ): boolean => {
   // Define contradicting event pairs
@@ -326,8 +327,8 @@ export const updateActiveEvents = (
 // Handle event choice selection
 export const selectEventChoice = (
   events: GameEvent[],
-  eventId: string,
-  choiceId: string,
+  eventId: GameEvent["id"],
+  choiceId: EventChoice["id"],
   playerMoney: number
 ): {
   events: GameEvent[];
