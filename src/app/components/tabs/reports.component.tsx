@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { useSettings } from "../../context/settings.context";
 import {
   calculatePropertyTax,
-  calculateRentalIncomeTax
+  calculateRentalIncomeTax,
+  calculateTotalPropertyTax
 } from "../../utils/calculateTaxes.util";
 
 interface ReportsProps {
@@ -21,7 +22,7 @@ export const Reports = ({
   playerMoney = 0
 }: ReportsProps) => {
   const [activeSection, setActiveSection] = useState<string>("summary");
-  const { formatCurrency, formatPercent } = useSettings();
+  const { formatCurrency, formatPercent, taxRegion } = useSettings();
   const getOccupiedUnits = (property: Property) => {
     const occupiedUnits =
       property.occupiedUnits ??
@@ -44,9 +45,17 @@ export const Reports = ({
     0
   );
 
+  const monthlyPropertyTax = calculateTotalPropertyTax(
+    ownedProperties,
+    taxRegion
+  );
+
   // Calculate monthly cash flow
   const monthlyCashFlow =
-    monthlyRentalIncome - monthlyExpenses - monthlyRepayment;
+    monthlyRentalIncome -
+    monthlyExpenses -
+    monthlyRepayment -
+    monthlyPropertyTax;
 
   // Calculate net worth (assets - debt)
   const netWorth = portfolioValue + playerMoney - totalDebt;
@@ -66,30 +75,33 @@ export const Reports = ({
   // Calculate average ROI
   const averageROI =
     ownedProperties.length > 0
-      ? (ownedProperties.reduce(
-          (sum, p) => {
-            const purchasePrice =
-              p.purchasePrice !== undefined ? p.purchasePrice : p.marketPrice;
-            if (purchasePrice <= 0) return sum;
-            return sum + (p.value - purchasePrice) / purchasePrice;
-          },
-          0
-        ) /
+      ? (ownedProperties.reduce((sum, p) => {
+          const purchasePrice =
+            p.purchasePrice !== undefined ? p.purchasePrice : p.marketPrice;
+          if (purchasePrice <= 0) return sum;
+          return sum + (p.value - purchasePrice) / purchasePrice;
+        }, 0) /
           ownedProperties.length) *
         100
       : 0;
 
   // Calculate portfolio distribution by property type
-  const typeDistribution = ownedProperties.reduce((acc, property) => {
-    acc[property.type] = (acc[property.type] || 0) + property.value;
-    return acc;
-  }, {} as Record<PropertyType, number>);
+  const typeDistribution = ownedProperties.reduce(
+    (acc, property) => {
+      acc[property.type] = (acc[property.type] || 0) + property.value;
+      return acc;
+    },
+    {} as Record<PropertyType, number>
+  );
 
   // Calculate portfolio distribution by location
-  const locationDistribution = ownedProperties.reduce((acc, property) => {
-    acc[property.location] = (acc[property.location] || 0) + property.value;
-    return acc;
-  }, {} as Record<Location, number>);
+  const locationDistribution = ownedProperties.reduce(
+    (acc, property) => {
+      acc[property.location] = (acc[property.location] || 0) + property.value;
+      return acc;
+    },
+    {} as Record<Location, number>
+  );
 
   // Calculate occupancy rate
   const totalUnits = ownedProperties.reduce(
@@ -100,8 +112,7 @@ export const Reports = ({
     (sum, property) => sum + getOccupiedUnits(property),
     0
   );
-  const occupancyRate =
-    totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
+  const occupancyRate = totalUnits > 0 ? (occupiedUnits / totalUnits) * 100 : 0;
 
   // Calculate debt service coverage ratio
   const dscr =
@@ -158,6 +169,7 @@ export const Reports = ({
               <th className='px-4 py-2 text-left'>ROI</th>
               <th className='px-4 py-2 text-left'>Monthly Income</th>
               <th className='px-4 py-2 text-left'>Monthly Expenses</th>
+              <th className='px-4 py-2 text-left'>Monthly Property Tax</th>
               <th className='px-4 py-2 text-left'>Cash Flow</th>
               <th className='px-4 py-2 text-left'>Cap Rate</th>
             </tr>
@@ -168,11 +180,7 @@ export const Reports = ({
                 property.purchasePrice !== undefined
                   ? property.purchasePrice
                   : property.marketPrice;
-              const roiValue =
-                purchasePrice > 0
-                  ? ((property.value - purchasePrice) / purchasePrice) * 100
-                  : 0;
-              const roi = roiValue.toFixed(2);
+              const roi = calculateROI(property).toFixed(2);
 
               const monthlyIncome = property.isRented
                 ? property.rentPrice * getOccupiedUnits(property)
@@ -185,9 +193,7 @@ export const Reports = ({
               return (
                 <tr key={property.id}>
                   <td className='px-4 py-2'>{property.address}</td>
-                  <td className='px-4 py-2'>
-                    {formatCurrency(purchasePrice)}
-                  </td>
+                  <td className='px-4 py-2'>{formatCurrency(purchasePrice)}</td>
                   <td className='px-4 py-2'>
                     {formatCurrency(property.value)}
                   </td>
@@ -204,6 +210,9 @@ export const Reports = ({
                   <td className='px-4 py-2 text-red-400'>
                     {formatCurrency(property.maintenanceCosts)}
                   </td>
+                  <td className='px-4 py-2 text-red-400'>
+                    {formatCurrency(property.propertyTax)}
+                  </td>
                   <td
                     className={`px-4 py-2 ${
                       cashFlow >= 0 ? "text-green-400" : "text-red-400"
@@ -216,6 +225,48 @@ export const Reports = ({
               );
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <th id='total' className='px-4 py-2 text-left'>
+                Total
+              </th>
+              <td className='px-4 py-2'>
+                {formatCurrency(
+                  ownedProperties.reduce(
+                    (acc, property) => (acc += property?.purchasePrice ?? 0),
+                    0
+                  )
+                )}
+              </td>
+              <td className='px-4 py-2'>{formatCurrency(portfolioValue)}</td>
+              <td
+                className={`px-4 py-2 ${averageROI >= 0 ? "text-green-400" : "text-red-400"}`}
+              >
+                {formatPercent(averageROI)}
+              </td>
+              <td
+                className={`px-4 py-2 ${monthlyRentalIncome >= 0 ? "text-green-400" : "text-red-400"}`}
+              >
+                {formatCurrency(monthlyRentalIncome)}
+              </td>
+              <td
+                className={`px-4 py-2 ${monthlyExpenses >= 0 ? "text-red-400" : "text-green-400"}`}
+              >
+                {formatCurrency(monthlyExpenses)}
+              </td>
+              <td
+                className={`px-4 py-2 ${monthlyPropertyTax >= 0 ? "text-red-400" : "text-green-400"}`}
+              >
+                {formatCurrency(monthlyPropertyTax)}
+              </td>
+              <td
+                className={`px-4 py-2 ${monthlyCashFlow >= 0 ? "text-green-400" : "text-red-400"}`}
+              >
+                {formatCurrency(monthlyCashFlow)}
+              </td>
+              <td className='px-4 py-2'>{formatPercent(capRate)}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       {ownedProperties.length === 0 && (
@@ -225,6 +276,19 @@ export const Reports = ({
       )}
     </div>
   );
+
+  const calculateROI = (property: Property) => {
+    if (!property.purchasePrice) {
+      return 0;
+    }
+
+    const roiValue =
+      property.purchasePrice > 0
+        ? ((property.value - property.purchasePrice) / property.purchasePrice) *
+          100
+        : 0;
+    return roiValue;
+  };
 
   const renderFinancialMetrics = () => (
     <div className='border border-gray-700 p-4 rounded'>
